@@ -15,10 +15,10 @@ from .base import Base
 
 
 class MeasureRequestStatus(str, enum.Enum):
-    NEW = "new"
-    IN_PROGRESS = "in_progress"
-    DONE = "done"
-    CANCELLED = "cancelled"
+    NEW = "NEW"
+    IN_PROGRESS = "IN_PROGRESS"
+    DONE = "DONE"
+    CANCELLED = "CANCELLED"
 
 
 # 11. Модель MeasureRequest
@@ -38,7 +38,7 @@ class MeasureRequest(Base):
     # Комментарий
     comment = Column(Text, nullable=True)
     # Статус заявки
-    status = Column(Enum(MeasureRequestStatus), default=MeasureRequestStatus.NEW, nullable=False)
+    status = Column(Enum(MeasureRequestStatus, name="measure_request_status", create_type=False), default=MeasureRequestStatus.NEW, nullable=False)
     # Дата создания
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 

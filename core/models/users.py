@@ -14,9 +14,9 @@ from .base import Base
 
 
 class UserRole(str, enum.Enum):
-    ADMIN = "admin"
-    MANAGER = "manager"
-    CUSTOMER = "customer"
+    ADMIN = "ADMIN"
+    MANAGER = "MANAGER"
+    CUSTOMER = "CUSTOMER"
 
 
 # 1. Модель User
@@ -34,7 +34,7 @@ class User(Base):
     # Hash пароля обязательный
     password_hash = Column(Text, nullable=False)
     # Роль пользователя (admin, manager, customer)
-    role = Column(Enum(UserRole), nullable=False)
+    role = Column(Enum(UserRole, name="user_role", create_type=False), nullable=False)
     # Время создания обязательный
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     # Время обновления

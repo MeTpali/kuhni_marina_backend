@@ -37,7 +37,7 @@ app.add_middleware(
 )
 
 # Настройка статических файлов
-app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+# app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
 # Подключаем роутеры API v1
 app.include_router(api_router, prefix="/api/v1")

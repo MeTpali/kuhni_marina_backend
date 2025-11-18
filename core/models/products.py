@@ -16,8 +16,8 @@ from .base import Base
 
 
 class ProductType(str, enum.Enum):
-    KITCHEN = "kitchen"
-    FURNITURE = "furniture"
+    KITCHEN = "KITCHEN"
+    FURNITURE = "FURNITURE"
 
 
 # 3. Модель Product
@@ -41,7 +41,7 @@ class Product(Base):
     # Хит продаж
     is_hit = Column(Boolean, default=False, nullable=False)
     # Тип (kitchen, furniture)
-    type = Column(Enum(ProductType), nullable=False)
+    type = Column(Enum(ProductType, name="category_type", create_type=False), nullable=False)
     # Дата создания
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     # Дата обновления

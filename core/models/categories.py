@@ -5,16 +5,17 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Enum,
+    Boolean,
 )
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
+from datetime import datetime
 import enum
 from .base import Base
 
 
 class CategoryType(str, enum.Enum):
-    KITCHEN = "kitchen"
-    FURNITURE = "furniture"
+    KITCHEN = "KITCHEN"
+    FURNITURE = "FURNITURE"
 
 
 # 2. Модель Category
@@ -30,11 +31,15 @@ class Category(Base):
     # Родительская категория
     parent_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     # Тип категории (kitchen, furniture)
-    type = Column(Enum(CategoryType), nullable=False)
+    # SQLAlchemy автоматически использует .value для Enum
+    type = Column(Enum(CategoryType, name="category_type", create_type=False, native_enum=True), nullable=False)
     # Дата создания
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
+    # Признак активности
+    is_active = Column(Boolean, default=True, nullable=False)
 
     # Связи
-    parent = relationship("Category", remote_side=[id], backref="children")
+    parent = relationship("Category", remote_side=[id], back_populates="children")
+    children = relationship("Category", back_populates="parent", foreign_keys=[parent_id])
     products = relationship("Product", back_populates="category")
 

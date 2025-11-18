@@ -4,13 +4,13 @@
 -- 1. Создание ENUM типов
 
 -- Тип роли пользователя
-CREATE TYPE user_role AS ENUM ('admin', 'manager', 'customer');
+CREATE TYPE user_role AS ENUM ('ADMIN', 'MANAGER', 'CUSTOMER');
 
 -- Тип категории/товара
-CREATE TYPE category_type AS ENUM ('kitchen', 'furniture');
+CREATE TYPE category_type AS ENUM ('KITCHEN', 'FURNITURE');
 
 -- Статус заявки на замер
-CREATE TYPE measure_request_status AS ENUM ('new', 'in_progress', 'done', 'cancelled');
+CREATE TYPE measure_request_status AS ENUM ('NEW', 'IN_PROGRESS', 'DONE', 'CANCELLED');
 
 -- 2. Создание таблицы users
 CREATE TABLE users (
@@ -33,7 +33,8 @@ CREATE TABLE categories (
     slug TEXT NOT NULL UNIQUE,
     parent_id INTEGER REFERENCES categories(id),
     type category_type NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE INDEX idx_categories_slug ON categories(slug);
@@ -139,7 +140,7 @@ CREATE TABLE measure_requests (
     address TEXT NOT NULL,
     preferred_date DATE,
     comment TEXT,
-    status measure_request_status NOT NULL DEFAULT 'new',
+    status measure_request_status NOT NULL DEFAULT 'NEW',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
