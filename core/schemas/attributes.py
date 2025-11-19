@@ -12,6 +12,10 @@ class AttributeCreateRequest(AttributeBase):
     pass
 
 
+class AttributeUpdateRequest(AttributeBase):
+    pass
+
+
 class AttributeResponse(AttributeBase):
     id: int
     message: str | None = None

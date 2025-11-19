@@ -15,6 +15,10 @@ class BannerCreateRequest(BannerBase):
     pass
 
 
+class BannerUpdateRequest(BannerBase):
+    pass
+
+
 class BannerResponse(BannerBase):
     id: int
     message: str | None = None

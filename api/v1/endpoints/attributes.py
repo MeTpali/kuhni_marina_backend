@@ -4,6 +4,7 @@ from api.deps import get_attribute_service
 from services.attributes import AttributeService
 from core.schemas.attributes import (
     AttributeCreateRequest,
+    AttributeUpdateRequest,
     AttributeResponse,
     AttributeListResponse,
     AttributeDeleteResponse,
@@ -75,6 +76,30 @@ async def create_attribute(
     - Создает и возвращает созданный атрибут
     """
     return await attribute_service.create_attribute(request)
+
+
+@router.put(
+    "/{attribute_id}",
+    response_model=AttributeResponse,
+    summary="Обновить атрибут",
+    description="Обновляет атрибут по идентификатору",
+    responses={
+        200: {"description": "Атрибут успешно обновлен"},
+        400: {"description": "Некорректные данные для атрибута"},
+        404: {"description": "Атрибут не найден"},
+    },
+)
+async def update_attribute(
+    attribute_id: int,
+    request: AttributeUpdateRequest,
+    attribute_service: AttributeService = Depends(get_attribute_service),
+):
+    """
+    Обновить атрибут:
+    - Проверяет корректность данных
+    - Обновляет и возвращает обновленный атрибут
+    """
+    return await attribute_service.update_attribute(attribute_id, request)
 
 
 @router.delete(

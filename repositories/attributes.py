@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.models.attributes import Attribute
-from core.schemas.attributes import AttributeCreateRequest
+from core.schemas.attributes import AttributeCreateRequest, AttributeUpdateRequest
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,27 @@ class AttributeRepository:
         await self.session.refresh(attribute)
 
         logger.info("Attribute created with id %s", attribute.id)
+        return attribute
+
+    async def update_attribute(
+        self, attribute_id: int, request: AttributeUpdateRequest
+    ) -> Optional[Attribute]:
+        """
+        Обновить атрибут по идентификатору.
+        """
+        logger.info("Updating attribute with id %s", attribute_id)
+        attribute = await self.get_attribute_by_id(attribute_id)
+        if attribute is None:
+            logger.warning("Attribute with id %s not found for update", attribute_id)
+            return None
+
+        attribute.name = request.name
+        attribute.unit = request.unit
+
+        await self.session.commit()
+        await self.session.refresh(attribute)
+
+        logger.info("Attribute with id %s successfully updated", attribute_id)
         return attribute
 
     async def delete_attribute(self, attribute_id: int) -> bool:

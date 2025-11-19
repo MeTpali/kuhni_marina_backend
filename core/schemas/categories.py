@@ -21,6 +21,14 @@ class CategoryCreateRequest(BaseSchema):
     is_active: bool = True
 
 
+class CategoryUpdateRequest(BaseSchema):
+    name: str
+    slug: Optional[str] = None
+    parent_id: Optional[int] = None
+    type: CategoryType
+    is_active: Optional[bool] = None
+
+
 class CategoryResponse(CategoryBase):
     id: int
     is_active: bool = True

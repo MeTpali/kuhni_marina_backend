@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from core.models.categories import Category, CategoryType
-from core.schemas.categories import CategoryCreateRequest
+from core.schemas.categories import CategoryCreateRequest, CategoryUpdateRequest
 from core.utils.slug import generate_unique_slug
 
 logger = logging.getLogger(__name__)
@@ -107,6 +107,37 @@ class CategoryRepository:
         await self.session.commit()
         await self.session.refresh(category)
         logger.info("Category created with id %s", category.id)
+        return category
+
+    async def update_category(
+        self,
+        category_id: int,
+        name: str,
+        category_type: CategoryType,
+        slug: str,
+        parent_id: Optional[int] = None,
+        is_active: Optional[bool] = None,
+    ) -> Optional[Category]:
+        """
+        Обновить категорию по идентификатору.
+        """
+        logger.info("Updating category with id %s", category_id)
+        category = await self.get_category_by_id(category_id, include_inactive=True)
+        if category is None:
+            logger.warning("Category with id %s not found for update", category_id)
+            return None
+
+        category.name = name
+        category.slug = slug
+        category.type = category_type
+        category.parent_id = parent_id
+        if is_active is not None:
+            category.is_active = is_active
+
+        await self.session.commit()
+        await self.session.refresh(category)
+
+        logger.info("Category with id %s successfully updated", category_id)
         return category
 
     async def deactivate_category(self, category_id: int) -> bool:

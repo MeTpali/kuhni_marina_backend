@@ -4,6 +4,7 @@ from api.deps import get_category_service
 from core.models.categories import CategoryType
 from core.schemas.categories import (
     CategoryCreateRequest,
+    CategoryUpdateRequest,
     CategoryResponse,
     CategoryListResponse,
     CategoryDeleteResponse,
@@ -88,6 +89,31 @@ async def create_category(
     Создать новую категорию.
     """
     return await category_service.create_category(request)
+
+
+@router.put(
+    "/{category_id}",
+    response_model=CategoryResponse,
+    summary="Обновить категорию",
+    description="Обновляет категорию по идентификатору. Если изменяется название, автоматически перегенерирует slug",
+    responses={
+        200: {"description": "Категория успешно обновлена"},
+        400: {"description": "Некорректные данные"},
+        404: {"description": "Категория или родительская категория не найдена"},
+    },
+)
+async def update_category(
+    category_id: int,
+    request: CategoryUpdateRequest,
+    category_service: CategoryService = Depends(get_category_service),
+):
+    """
+    Обновить категорию:
+    - Если изменяется название, автоматически перегенерирует slug
+    - Проверяет корректность данных и существование родительской категории
+    - Обновляет и возвращает обновленную категорию
+    """
+    return await category_service.update_category(category_id, request)
 
 
 @router.delete(

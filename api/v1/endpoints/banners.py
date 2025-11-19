@@ -4,6 +4,7 @@ from api.deps import get_banner_service
 from services.banners import BannerService
 from core.schemas.banners import (
     BannerCreateRequest,
+    BannerUpdateRequest,
     BannerResponse,
     BannerListResponse,
     BannerDeleteResponse,
@@ -76,6 +77,30 @@ async def create_banner(
     - Создает и возвращает созданный баннер
     """
     return await banner_service.create_banner(request)
+
+
+@router.put(
+    "/{banner_id}",
+    response_model=BannerResponse,
+    summary="Обновить баннер",
+    description="Обновляет баннер по идентификатору",
+    responses={
+        200: {"description": "Баннер успешно обновлен"},
+        400: {"description": "Некорректные данные для баннера"},
+        404: {"description": "Баннер не найден"},
+    },
+)
+async def update_banner(
+    banner_id: int,
+    request: BannerUpdateRequest,
+    banner_service: BannerService = Depends(get_banner_service),
+):
+    """
+    Обновить баннер:
+    - Проверяет корректность данных
+    - Обновляет и возвращает обновленный баннер
+    """
+    return await banner_service.update_banner(banner_id, request)
 
 
 @router.delete(

@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from repositories.attributes import AttributeRepository
 from core.schemas.attributes import (
     AttributeCreateRequest,
+    AttributeUpdateRequest,
     AttributeResponse,
     AttributeListResponse,
     AttributeDeleteResponse,
@@ -87,6 +88,40 @@ class AttributeService:
             message="Атрибут успешно создан",
         )
         logger.info("Attribute created with id %s via service", attribute.id)
+        return response
+
+    async def update_attribute(
+        self,
+        attribute_id: int,
+        request: AttributeUpdateRequest,
+    ) -> AttributeResponse:
+        """
+        Обновить атрибут по идентификатору.
+        """
+        logger.info("Updating attribute via service with id %s", attribute_id)
+
+        if len(request.name.strip()) < 2:
+            logger.error("Attribute name too short: '%s'", request.name)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Название атрибута должно содержать минимум 2 символа",
+            )
+
+        attribute = await self.repository.update_attribute(attribute_id, request)
+        if not attribute:
+            logger.error("Attribute with id %s not found for update", attribute_id)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Атрибут с id {attribute_id} не найден",
+            )
+
+        response = AttributeResponse(
+            id=attribute.id,
+            name=attribute.name,
+            unit=attribute.unit,
+            message="Атрибут успешно обновлен",
+        )
+        logger.info("Attribute with id %s successfully updated via service", attribute_id)
         return response
 
     async def delete_attribute(self, attribute_id: int) -> AttributeDeleteResponse:

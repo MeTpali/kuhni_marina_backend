@@ -1,11 +1,13 @@
 from .attributes import (
     AttributeCreateRequest,
+    AttributeUpdateRequest,
     AttributeResponse,
     AttributeListResponse,
     AttributeDeleteResponse,
 )
 from .categories import (
     CategoryCreateRequest,
+    CategoryUpdateRequest,
     CategoryResponse,
     CategoryTreeNode,
     CategoryListResponse,
@@ -13,6 +15,7 @@ from .categories import (
 )
 from .banners import (
     BannerCreateRequest,
+    BannerUpdateRequest,
     BannerResponse,
     BannerListResponse,
     BannerDeleteResponse,
@@ -26,13 +29,13 @@ from .measure_requests import (
 )
 
 __all__ = [
-    "AttributeCreateRequest", "AttributeResponse",
-    "AttributeListResponse", "AttributeDeleteResponse",
-    "CategoryCreateRequest", "CategoryResponse",
-    "CategoryTreeNode", "CategoryListResponse",
+    "AttributeCreateRequest", "AttributeUpdateRequest",
+    "AttributeResponse", "AttributeListResponse", "AttributeDeleteResponse",
+    "CategoryCreateRequest", "CategoryUpdateRequest",
+    "CategoryResponse", "CategoryTreeNode", "CategoryListResponse",
     "CategoryDeleteResponse",
-    "BannerCreateRequest", "BannerResponse",
-    "BannerListResponse", "BannerDeleteResponse",
+    "BannerCreateRequest", "BannerUpdateRequest",
+    "BannerResponse", "BannerListResponse", "BannerDeleteResponse",
     "MeasureRequestCreateRequest", "MeasureRequestUpdateRequest",
     "MeasureRequestStatusUpdateRequest", "MeasureRequestResponse",
     "MeasureRequestListResponse",

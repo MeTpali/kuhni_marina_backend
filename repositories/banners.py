@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.models.banners import Banner
-from core.schemas.banners import BannerCreateRequest
+from core.schemas.banners import BannerCreateRequest, BannerUpdateRequest
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +56,30 @@ class BannerRepository:
         await self.session.refresh(banner)
 
         logger.info("Banner created with id %s", banner.id)
+        return banner
+
+    async def update_banner(
+        self, banner_id: int, request: BannerUpdateRequest
+    ) -> Optional[Banner]:
+        """
+        Обновить баннер по идентификатору.
+        """
+        logger.info("Updating banner with id %s", banner_id)
+        banner = await self.get_banner_by_id(banner_id)
+        if banner is None:
+            logger.warning("Banner with id %s not found for update", banner_id)
+            return None
+
+        banner.title = request.title
+        banner.image_url = request.image_url
+        banner.link_url = request.link_url
+        banner.position = request.position
+        banner.is_active = request.is_active if request.is_active is not None else banner.is_active
+
+        await self.session.commit()
+        await self.session.refresh(banner)
+
+        logger.info("Banner with id %s successfully updated", banner_id)
         return banner
 
     async def deactivate_banner(self, banner_id: int) -> bool:

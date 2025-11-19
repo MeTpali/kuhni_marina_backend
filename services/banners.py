@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from repositories.banners import BannerRepository
 from core.schemas.banners import (
     BannerCreateRequest,
+    BannerUpdateRequest,
     BannerResponse,
     BannerListResponse,
     BannerDeleteResponse,
@@ -110,6 +111,50 @@ class BannerService:
             message="Баннер успешно создан",
         )
         logger.info("Banner created with id %s via service", banner.id)
+        return response
+
+    async def update_banner(
+        self,
+        banner_id: int,
+        request: BannerUpdateRequest,
+    ) -> BannerResponse:
+        """
+        Обновить баннер по идентификатору.
+        """
+        logger.info("Updating banner via service with id %s", banner_id)
+
+        if len(request.title.strip()) < 2:
+            logger.error("Banner title too short: '%s'", request.title)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Заголовок баннера должен содержать минимум 2 символа",
+            )
+
+        if not request.image_url or len(request.image_url.strip()) == 0:
+            logger.error("Banner image_url is empty")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="URL изображения обязателен для заполнения",
+            )
+
+        banner = await self.repository.update_banner(banner_id, request)
+        if not banner:
+            logger.error("Banner with id %s not found for update", banner_id)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Баннер с id {banner_id} не найден",
+            )
+
+        response = BannerResponse(
+            id=banner.id,
+            title=banner.title,
+            image_url=banner.image_url,
+            link_url=banner.link_url,
+            position=banner.position,
+            is_active=banner.is_active,
+            message="Баннер успешно обновлен",
+        )
+        logger.info("Banner with id %s successfully updated via service", banner_id)
         return response
 
     async def delete_banner(self, banner_id: int) -> BannerDeleteResponse:
