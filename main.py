@@ -1,12 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from api.v1.routers import api_router
-from core.config import settings
+from core.config import settings, setup_logging
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.openapi.utils import get_openapi
-from core.config import setup_logging
 from fastapi.staticfiles import StaticFiles
-from core.config import settings
+from admin import setup_admin
 
 # Настраиваем логирование
 setup_logging()
@@ -36,11 +35,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Настройка статических файлов
-# app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Подключаем роутеры API v1
 app.include_router(api_router, prefix="/api/v1")
+
+# Настраиваем SQLAdmin
+admin = setup_admin(app)
 
 # --- Настройка авторизации для OpenAPI ---
 api_key_header = APIKeyHeader(name="Authorization", auto_error=False)

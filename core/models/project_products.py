@@ -20,3 +20,5 @@ class ProjectProduct(Base):
     project = relationship("Project", back_populates="products")
     product = relationship("Product", back_populates="projects")
 
+    def __repr__(self):
+        return f"Project {self.project_id} - Product {self.product_id}"

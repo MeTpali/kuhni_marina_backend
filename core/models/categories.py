@@ -43,3 +43,5 @@ class Category(Base):
     children = relationship("Category", back_populates="parent", foreign_keys=[parent_id])
     products = relationship("Product", back_populates="category")
 
+    def __repr__(self):
+        return f"{self.id} - {self.name}"

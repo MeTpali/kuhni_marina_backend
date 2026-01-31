@@ -37,3 +37,5 @@ class Review(Base):
     product = relationship("Product", back_populates="reviews")
     user = relationship("User", back_populates="reviews")
 
+    def __repr__(self):
+        return f"{self.id} - {self.author_name} ({self.rating}★)"

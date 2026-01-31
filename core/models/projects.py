@@ -29,3 +29,5 @@ class Project(Base):
     images = relationship("ProjectImage", back_populates="project", cascade="all, delete-orphan")
     products = relationship("ProjectProduct", back_populates="project", cascade="all, delete-orphan")
 
+    def __repr__(self):
+        return f"{self.id} - {self.name}"

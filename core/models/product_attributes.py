@@ -23,3 +23,5 @@ class ProductAttribute(Base):
     product = relationship("Product", back_populates="attributes")
     attribute = relationship("Attribute", back_populates="product_attributes")
 
+    def __repr__(self):
+        return f"Product {self.product_id} - Attribute {self.attribute_id}: {self.value}"

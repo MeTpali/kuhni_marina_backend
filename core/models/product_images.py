@@ -25,3 +25,6 @@ class ProductImage(Base):
     # Связи
     product = relationship("Product", back_populates="images")
 
+    def __repr__(self):
+        main_str = " [Главное]" if self.is_main else ""
+        return f"{self.id} - {self.image_url}{main_str}"

@@ -56,3 +56,5 @@ class Product(Base):
     reviews = relationship("Review", back_populates="product")
     projects = relationship("ProjectProduct", back_populates="product")
 
+    def __repr__(self):
+        return f"{self.id} - {self.name}"

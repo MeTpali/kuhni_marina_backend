@@ -21,3 +21,6 @@ class Attribute(Base):
     # Связи
     product_attributes = relationship("ProductAttribute", back_populates="attribute")
 
+    def __repr__(self):
+        unit_str = f" ({self.unit})" if self.unit else ""
+        return f"{self.id} - {self.name}{unit_str}"

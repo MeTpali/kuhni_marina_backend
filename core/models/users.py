@@ -42,3 +42,7 @@ class User(Base):
 
     # Связи
     reviews = relationship("Review", back_populates="user")
+
+    def __repr__(self):
+        name = self.full_name or self.email or self.phone or f"User {self.id}"
+        return f"{self.id} - {name}"
