@@ -51,6 +51,7 @@ CREATE TABLE products (
     is_new BOOLEAN NOT NULL DEFAULT FALSE,
     is_hit BOOLEAN NOT NULL DEFAULT FALSE,
     type category_type NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP
 );

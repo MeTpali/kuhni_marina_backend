@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.session import get_async_session
 from repositories.attributes import AttributeRepository
 from repositories.categories import CategoryRepository
+from repositories.products import ProductRepository
 from repositories.banners import BannerRepository
 from repositories.measure_requests import MeasureRequestRepository
 from repositories.product_attributes import ProductAttributeRepository
@@ -16,6 +17,7 @@ from repositories.reviews import ReviewRepository
 
 from services.attributes import AttributeService
 from services.categories import CategoryService
+from services.products import ProductService
 from services.banners import BannerService
 from services.measure_requests import MeasureRequestService
 from services.product_attributes import ProductAttributeService
@@ -47,6 +49,18 @@ async def get_category_service(
     category_repository: CategoryRepository = Depends(get_category_repository),
 ) -> CategoryService:
     return CategoryService(category_repository)
+
+
+async def get_product_repository(
+    db: AsyncSession = Depends(get_async_session),
+) -> ProductRepository:
+    return ProductRepository(db)
+
+
+async def get_product_service(
+    product_repository: ProductRepository = Depends(get_product_repository),
+) -> ProductService:
+    return ProductService(product_repository)
 
 
 async def get_banner_repository(

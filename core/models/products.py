@@ -10,7 +10,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
+from datetime import datetime
 import enum
 from .base import Base
 
@@ -41,11 +41,13 @@ class Product(Base):
     # Хит продаж
     is_hit = Column(Boolean, default=False, nullable=False)
     # Тип (kitchen, furniture)
-    type = Column(Enum(ProductType, name="category_type", create_type=False), nullable=False)
+    type = Column(Enum(ProductType, name="category_type", create_type=False, native_enum=True), nullable=False)
+    # Признак активности
+    is_active = Column(Boolean, default=True, nullable=False)
     # Дата создания
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
     # Дата обновления
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=True)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
 
     # Связи
     category = relationship("Category", back_populates="products")
