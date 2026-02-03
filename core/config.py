@@ -19,10 +19,14 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str
     
     # Базовый URL приложения
-    HOST: str = "192.168.1.43"
+    HOST: str = "192.168.1.52"
     PORT: int = 8000
     BASE_URL: str = f"http://{HOST}:{PORT}/api/v1"
     STATIC_URL: str = f"http://{HOST}:{PORT}"
+    
+    # Настройки админ-панели
+    ADMIN_USERNAME: str
+    ADMIN_PASSWORD: str
     
     class Config:
         env_file = ".env"

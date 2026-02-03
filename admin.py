@@ -1,7 +1,9 @@
 from sqladmin import Admin, ModelView
-from fastapi import FastAPI
+from sqladmin.authentication import AuthenticationBackend
+from fastapi import FastAPI, Request
 
 from core.models.db_helper import db_helper
+from core.config import settings
 from core.models.users import User, UserRole
 from core.models.categories import Category, CategoryType
 from core.models.products import Product, ProductType
@@ -14,6 +16,41 @@ from core.models.project_images import ProjectImage
 from core.models.project_products import ProjectProduct
 from core.models.banners import Banner
 from core.models.measure_requests import MeasureRequest, MeasureRequestStatus
+
+
+# ==================== Аутентификация ====================
+class AdminAuth(AuthenticationBackend):
+    """
+    Класс аутентификации для админ-панели.
+    Проверяет логин и пароль из переменных окружения.
+    """
+    async def login(self, request: Request) -> bool:
+        """
+        Обработка входа в админ-панель.
+        """
+        form = await request.form()
+        username = form.get("username")
+        password = form.get("password")
+        
+        # Проверяем учетные данные
+        if username == settings.ADMIN_USERNAME and password == settings.ADMIN_PASSWORD:
+            # Сохраняем сессию
+            request.session.update({"authenticated": True})
+            return True
+        return False
+
+    async def logout(self, request: Request) -> bool:
+        """
+        Обработка выхода из админ-панели.
+        """
+        request.session.clear()
+        return True
+
+    async def authenticate(self, request: Request) -> bool:
+        """
+        Проверка аутентификации для защищенных страниц.
+        """
+        return request.session.get("authenticated", False)
 
 
 # ==================== Пользователи ====================
@@ -332,11 +369,15 @@ def setup_admin(app: FastAPI):
     """
     Настройка SQLAdmin для приложения.
     """
+    # Создаем экземпляр аутентификации
+    authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY)
+    
     admin = Admin(
         app,
         engine=db_helper.engine,
         title="Админ-панель - Кухни Вязники",
         base_url="/admin",
+        authentication_backend=authentication_backend,
     )
 
     # Регистрируем все модели

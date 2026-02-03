@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from api.v1.routers import api_router
 from core.config import settings, setup_logging
 from fastapi.security.api_key import APIKeyHeader
@@ -35,6 +36,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Настройка сессий для админ-панели
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 # Настройка статических файлов
 app.mount("/static", StaticFiles(directory="static"), name="static")
