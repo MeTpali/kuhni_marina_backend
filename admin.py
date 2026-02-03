@@ -4,7 +4,6 @@ from fastapi import FastAPI, Request
 
 from core.models.db_helper import db_helper
 from core.config import settings
-from core.models.users import User, UserRole
 from core.models.categories import Category, CategoryType
 from core.models.products import Product, ProductType
 from core.models.attributes import Attribute
@@ -51,34 +50,6 @@ class AdminAuth(AuthenticationBackend):
         Проверка аутентификации для защищенных страниц.
         """
         return request.session.get("authenticated", False)
-
-
-# ==================== Пользователи ====================
-class UserAdmin(ModelView, model=User):
-    name = "Пользователь"
-    name_plural = "Пользователи"
-    icon = "fa-solid fa-user"
-    column_list = [User.id, User.full_name, User.email, User.phone, User.role, User.created_at]
-    column_details_list = [User.id, User.full_name, User.email, User.phone, User.password_hash, User.role, User.created_at, User.updated_at]
-    column_searchable_list = [User.full_name, User.email, User.phone]
-    column_sortable_list = [User.id, User.full_name, User.email, User.created_at]
-    column_labels = {
-        User.id: "ID",
-        User.full_name: "Полное имя",
-        User.email: "Email",
-        User.phone: "Телефон",
-        User.password_hash: "Хеш пароля",
-        User.role: "Роль",
-        User.created_at: "Дата создания",
-        User.updated_at: "Дата обновления",
-    }
-    form_columns = [User.full_name, User.email, User.phone, User.password_hash, User.role]
-    form_ajax_refs = {}
-    form_args = {
-        "role": {
-            "choices": [(role.value, role.name) for role in UserRole],
-        }
-    }
 
 
 # ==================== Категории ====================
@@ -224,7 +195,7 @@ class ReviewAdmin(ModelView, model=Review):
     name_plural = "Отзывы"
     icon = "fa-solid fa-star"
     column_list = [Review.id, Review.author_name, Review.rating, Review.product_id, Review.is_approved, Review.created_at]
-    column_details_list = [Review.id, Review.author_name, Review.rating, Review.text, Review.product_id, Review.user_id, Review.is_approved, Review.created_at]
+    column_details_list = [Review.id, Review.author_name, Review.rating, Review.text, Review.product_id, Review.is_approved, Review.created_at]
     column_searchable_list = [Review.author_name, Review.text]
     column_sortable_list = [Review.id, Review.rating, Review.created_at]
     column_labels = {
@@ -233,11 +204,10 @@ class ReviewAdmin(ModelView, model=Review):
         Review.rating: "Оценка",
         Review.text: "Текст",
         Review.product_id: "Продукт",
-        Review.user_id: "Пользователь",
         Review.is_approved: "Одобрен",
         Review.created_at: "Дата создания",
     }
-    form_columns = [Review.author_name, Review.rating, Review.text, Review.product, Review.user, Review.is_approved]
+    form_columns = [Review.author_name, Review.rating, Review.text, Review.product, Review.is_approved]
     form_ajax_refs = {
         "product": {
             "fields": ("name", "id"),
@@ -381,7 +351,6 @@ def setup_admin(app: FastAPI):
     )
 
     # Регистрируем все модели
-    admin.add_view(UserAdmin)
     admin.add_view(CategoryAdmin)
     admin.add_view(ProductAdmin)
     admin.add_view(AttributeAdmin)
