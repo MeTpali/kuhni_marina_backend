@@ -78,6 +78,8 @@ from .products import (
     ProductListItemResponse,
     ProductAttributeResponse,
     ProductImageResponse,
+    ProductSuggestionItemResponse,
+    ProductSearchSuggestionsResponse,
 )
 from .discounts import (
     DiscountCreateRequest,
@@ -117,6 +119,7 @@ __all__ = [
     "ProductResponse", "ProductCatalogResponse", "ProductIdListResponse",
     "ProductListResponse", "ProductDeleteResponse", "ProductListItemResponse",
     "ProductAttributeResponse", "ProductImageResponse",
+    "ProductSuggestionItemResponse", "ProductSearchSuggestionsResponse",
     "DiscountCreateRequest", "DiscountUpdateRequest",
     "DiscountResponse", "DiscountListResponse", "DiscountDeleteResponse",
 ]

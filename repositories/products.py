@@ -30,13 +30,15 @@ class ProductRepository:
         is_hit: Optional[bool] = None,
         is_new: Optional[bool] = None,
         has_discount: Optional[bool] = None,
+        product_type: Optional[ProductType] = None,
+        search_query: Optional[str] = None,
     ) -> Tuple[List[Product], int]:
         """
         Получить каталог продуктов с фильтрами и пагинацией.
         Возвращает список продуктов и общее количество.
         """
         logger.info(
-            "Fetching product catalog: page=%s, page_size=%s, category_ids=%s, attribute_filters=%s, is_hit=%s, is_new=%s, has_discount=%s",
+            "Fetching product catalog: page=%s, page_size=%s, category_ids=%s, attribute_filters=%s, is_hit=%s, is_new=%s, has_discount=%s, product_type=%s, search_query=%s",
             page,
             page_size,
             category_ids,
@@ -44,6 +46,8 @@ class ProductRepository:
             is_hit,
             is_new,
             has_discount,
+            product_type,
+            search_query,
         )
 
         # Базовый запрос
@@ -98,6 +102,21 @@ class ProductRepository:
             else:
                 query = query.where(~discount_exists)
 
+        # Фильтр по типу продукта
+        if product_type is not None:
+            type_val = product_type.value if hasattr(product_type, "value") else product_type
+            query = query.where(Product.type == type_val)
+
+        # Поиск по тексту (название и описание)
+        if search_query and search_query.strip():
+            q = f"%{search_query.strip()}%"
+            query = query.where(
+                or_(
+                    Product.name.ilike(q),
+                    Product.description.ilike(q),
+                )
+            )
+
         # Фильтр по атрибутам
         if attribute_filters:
             # Создаем подзапрос для продуктов, которые соответствуют всем фильтрам атрибутов
@@ -132,6 +151,45 @@ class ProductRepository:
 
         logger.info("Retrieved %d products (total: %d)", len(products), total)
         return products, total
+
+    async def get_product_search_suggestions(
+        self,
+        search_query: str,
+        product_type: Optional[ProductType] = None,
+        limit: int = 10,
+    ) -> List[Product]:
+        """
+        Получить подсказки поиска: продукты по тексту и опционально типу, с лимитом.
+        Для автодополнения в поисковой строке.
+        """
+        if not search_query or not search_query.strip():
+            return []
+
+        q = f"%{search_query.strip()}%"
+        query = (
+            select(Product)
+            .options(
+                selectinload(Product.category),
+                selectinload(Product.images),
+            )
+            .where(Product.is_active.is_(True))
+            .where(
+                or_(
+                    Product.name.ilike(q),
+                    Product.description.ilike(q),
+                )
+            )
+            .order_by(Product.id)
+            .limit(limit)
+        )
+        if product_type is not None:
+            type_val = product_type.value if hasattr(product_type, "value") else product_type
+            query = query.where(Product.type == type_val)
+
+        result = await self.session.execute(query)
+        products = result.scalars().unique().all()
+        logger.info("Retrieved %d search suggestions for query=%s", len(products), search_query[:50])
+        return products
 
     async def get_product_ids(
         self,

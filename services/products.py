@@ -21,6 +21,8 @@ from core.schemas.products import (
     ProductAttributeResponse,
     ProductImageResponse,
     ProductDiscountInfo,
+    ProductSuggestionItemResponse,
+    ProductSearchSuggestionsResponse,
 )
 from core.schemas.categories import CategoryResponse
 
@@ -98,6 +100,16 @@ class ProductService:
 
         return self._calculate_discount_info(price, discount.value, discount.discount_type)
 
+    @staticmethod
+    def _truncate_description(description: Optional[str], max_length: int = 150) -> Optional[str]:
+        """Обрезать описание до max_length символов с '...' в конце."""
+        if not description or not description.strip():
+            return None
+        s = description.strip()
+        if len(s) <= max_length:
+            return s
+        return s[:max_length].rstrip() + "..."
+
     async def get_product_catalog(
         self,
         page: int = 1,
@@ -107,18 +119,22 @@ class ProductService:
         is_hit: Optional[bool] = None,
         is_new: Optional[bool] = None,
         has_discount: Optional[bool] = None,
+        product_type: Optional[ProductType] = None,
+        search_query: Optional[str] = None,
     ) -> ProductCatalogResponse:
         """
         Получить каталог продуктов с фильтрами и пагинацией.
         """
         logger.info(
-            "Service call: get_product_catalog page=%s, page_size=%s, category_ids=%s, is_hit=%s, is_new=%s, has_discount=%s",
+            "Service call: get_product_catalog page=%s, page_size=%s, category_ids=%s, is_hit=%s, is_new=%s, has_discount=%s, product_type=%s, search_query=%s",
             page,
             page_size,
             category_ids,
             is_hit,
             is_new,
             has_discount,
+            product_type,
+            search_query,
         )
 
         products, total = await self.repository.get_product_catalog(
@@ -129,6 +145,8 @@ class ProductService:
             is_hit=is_hit,
             is_new=is_new,
             has_discount=has_discount,
+            product_type=product_type,
+            search_query=search_query,
         )
 
         items = []
@@ -226,6 +244,53 @@ class ProductService:
             category_ids=category_ids,
             attribute_filters=attribute_filters,
             has_discount=True,
+        )
+
+    async def get_search_suggestions(
+        self,
+        text: str,
+        product_type: Optional[ProductType] = None,
+        limit: int = 10,
+    ) -> ProductSearchSuggestionsResponse:
+        """
+        Подсказки поиска для автодополнения: id, картинка (опционально),
+        описание не более 150 символов с троеточием, цена, скидка (опционально).
+        """
+        products = await self.repository.get_product_search_suggestions(
+            search_query=text,
+            product_type=product_type,
+            limit=limit,
+        )
+        items = []
+        for product in products:
+            main_image = None
+            for img in product.images:
+                if img.is_main:
+                    main_image = img.image_url
+                    break
+            if not main_image and product.images:
+                main_image = product.images[0].image_url
+
+            discount = await self._get_product_discount(
+                product_id=product.id,
+                category_id=product.category_id,
+                product_type=ProductType(product.type) if isinstance(product.type, str) else product.type,
+                price=product.price,
+            )
+
+            items.append(
+                ProductSuggestionItemResponse(
+                    id=product.id,
+                    name=product.name,
+                    image=main_image,
+                    description=self._truncate_description(product.description),
+                    price=product.price,
+                    discount=discount,
+                )
+            )
+        return ProductSearchSuggestionsResponse(
+            items=items,
+            message="Подсказки поиска получены",
         )
 
     async def get_product_ids(

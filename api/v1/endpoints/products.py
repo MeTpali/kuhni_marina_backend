@@ -3,12 +3,14 @@ from fastapi import APIRouter, Depends, Query, status
 
 from api.deps import get_product_service
 from services.products import ProductService
+from core.models.products import ProductType
 from core.schemas.products import (
     ProductCreateRequest,
     ProductUpdateRequest,
     ProductResponse,
     ProductCatalogResponse,
     ProductIdListResponse,
+    ProductSearchSuggestionsResponse,
     ProductDeleteResponse,
 )
 
@@ -35,11 +37,14 @@ async def get_product_catalog(
     is_hit: Optional[bool] = Query(None, description="Фильтр по хитам продаж"),
     is_new: Optional[bool] = Query(None, description="Фильтр по новинкам"),
     has_discount: Optional[bool] = Query(None, description="Фильтр по наличию скидки"),
+    type: Optional[ProductType] = Query(None, description="Фильтр по типу продукта (KITCHEN, FURNITURE)"),
+    search: Optional[str] = Query(None, description="Поиск по названию и описанию"),
     product_service: ProductService = Depends(get_product_service),
 ):
     """
     Получить каталог продуктов:
-    - Поддерживает фильтрацию по категориям, атрибутам, хитам, новинкам и скидкам
+    - Поддерживает фильтрацию по категориям, атрибутам, типу, хитам, новинкам и скидкам
+    - Поддерживает поиск по тексту (название, описание)
     - Поддерживает пагинацию
     - Возвращает краткую информацию о продуктах
     """
@@ -60,6 +65,8 @@ async def get_product_catalog(
         is_hit=is_hit,
         is_new=is_new,
         has_discount=has_discount,
+        product_type=type,
+        search_query=search,
     )
 
 
@@ -186,6 +193,30 @@ async def get_product_discounts(
         page_size=page_size,
         category_ids=category_ids,
         attribute_filters=attr_filters,
+    )
+
+
+@router.get(
+    "/search/suggestions",
+    response_model=ProductSearchSuggestionsResponse,
+    summary="Подсказки поиска",
+    description="Быстрые подсказки для автодополнения: id, картинка, описание до 150 символов, цена, скидка",
+)
+async def get_search_suggestions(
+    text: str = Query(..., description="Текст поиска"),
+    type: Optional[ProductType] = Query(None, description="Фильтр по типу продукта (KITCHEN, FURNITURE)"),
+    limit: int = Query(10, ge=1, le=50, description="Максимальное количество подсказок в выдаче"),
+    product_service: ProductService = Depends(get_product_service),
+):
+    """
+    Подсказки поиска для пользователя:
+    - Текст поиска (обязательно), тип продукта (опционально), лимит (по умолчанию 10)
+    - Каждый элемент: id, картинка (опционально), описание не более 150 символов с троеточием, цена, скидка (опционально)
+    """
+    return await product_service.get_search_suggestions(
+        text=text,
+        product_type=type,
+        limit=limit,
     )
 
 

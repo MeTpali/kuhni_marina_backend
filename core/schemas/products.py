@@ -113,3 +113,19 @@ class ProductListResponse(BaseSchema):
 class ProductDeleteResponse(BaseSchema):
     product_id: int
     message: Optional[str] = None
+
+
+# Подсказки поиска (краткий элемент для автодополнения)
+class ProductSuggestionItemResponse(BaseSchema):
+    """Элемент подсказки поиска: id, наименование, картинка, описание до 150 символов, цена, скидка"""
+    id: int
+    name: str
+    image: Optional[str] = None
+    description: Optional[str] = None  # не более 150 символов + "..."
+    price: Optional[Decimal] = None
+    discount: Optional[ProductDiscountInfo] = None
+
+
+class ProductSearchSuggestionsResponse(BaseSchema):
+    items: List[ProductSuggestionItemResponse]
+    message: Optional[str] = None
