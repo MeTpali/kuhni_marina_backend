@@ -11,6 +11,7 @@ from api.v1.endpoints import (
     project_images,
     projects,
     reviews,
+    discounts,
 )
 
 api_router = APIRouter()
@@ -26,3 +27,4 @@ api_router.include_router(project_products.router)
 api_router.include_router(project_images.router)
 api_router.include_router(projects.router)
 api_router.include_router(reviews.router)
+api_router.include_router(discounts.router)

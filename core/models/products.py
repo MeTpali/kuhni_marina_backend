@@ -55,6 +55,7 @@ class Product(Base):
     attributes = relationship("ProductAttribute", back_populates="product", cascade="all, delete-orphan")
     reviews = relationship("Review", back_populates="product")
     projects = relationship("ProjectProduct", back_populates="product")
+    discounts = relationship("Discount", back_populates="product")
 
     def __repr__(self):
         return f"{self.id} - {self.name}"

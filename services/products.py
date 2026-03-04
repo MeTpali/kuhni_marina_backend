@@ -1,11 +1,14 @@
 import logging
-from typing import List
+from typing import List, Optional
 from math import ceil
+from decimal import Decimal
 
 from fastapi import HTTPException, status
 
 from repositories.products import ProductRepository
+from repositories.discounts import DiscountRepository
 from core.models.products import ProductType
+from core.models.discounts import DiscountType
 from core.schemas.products import (
     ProductCreateRequest,
     ProductUpdateRequest,
@@ -17,6 +20,7 @@ from core.schemas.products import (
     ProductDeleteResponse,
     ProductAttributeResponse,
     ProductImageResponse,
+    ProductDiscountInfo,
 )
 from core.schemas.categories import CategoryResponse
 
@@ -26,6 +30,73 @@ logger = logging.getLogger(__name__)
 class ProductService:
     def __init__(self, repository: ProductRepository):
         self.repository = repository
+
+    def _calculate_discount_info(
+        self,
+        price: Optional[Decimal],
+        discount_value: Decimal,
+        discount_type: DiscountType,
+    ) -> Optional[ProductDiscountInfo]:
+        """
+        Вычислить информацию о скидке для продукта.
+        """
+        if price is None or price <= 0:
+            return None
+
+        # Убеждаемся, что discount_value это Decimal
+        if not isinstance(discount_value, Decimal):
+            discount_value = Decimal(str(discount_value))
+
+        # Убеждаемся, что discount_type это Enum
+        if isinstance(discount_type, str):
+            discount_type = DiscountType(discount_type)
+
+        if discount_type == DiscountType.PERCENTAGE:
+            # Процентная скидка
+            discount_percent = discount_value
+            discount_amount = price * (discount_value / Decimal(100))
+            final_price = price - discount_amount
+        else:
+            # Фиксированная скидка
+            discount_percent = (discount_value / price) * Decimal(100) if price > 0 else Decimal(0)
+            discount_amount = min(discount_value, price)  # Скидка не может быть больше цены
+            final_price = price - discount_amount
+
+        # Убеждаемся, что итоговая цена не отрицательная
+        if final_price < 0:
+            final_price = Decimal(0)
+            discount_amount = price
+
+        return ProductDiscountInfo(
+            discount_percent=round(discount_percent, 2),
+            discount_amount=round(discount_amount, 2),
+            final_price=round(final_price, 2),
+        )
+
+    async def _get_product_discount(
+        self,
+        product_id: int,
+        category_id: int,
+        product_type: ProductType,
+        price: Optional[Decimal],
+    ) -> Optional[ProductDiscountInfo]:
+        """
+        Получить информацию о скидке для продукта.
+        """
+        if price is None or price <= 0:
+            return None
+
+        discount_repo = DiscountRepository(self.repository.session)
+        discount = await discount_repo.get_active_discount_for_product(
+            product_id=product_id,
+            category_id=category_id,
+            product_type=product_type,
+        )
+
+        if discount is None:
+            return None
+
+        return self._calculate_discount_info(price, discount.value, discount.discount_type)
 
     async def get_product_catalog(
         self,
@@ -62,6 +133,14 @@ class ProductService:
             if not main_image and product.images:
                 main_image = product.images[0].image_url
 
+            # Вычисляем скидку
+            discount = await self._get_product_discount(
+                product_id=product.id,
+                category_id=product.category_id,
+                product_type=ProductType(product.type) if isinstance(product.type, str) else product.type,
+                price=product.price,
+            )
+
             items.append(
                 ProductListItemResponse(
                     id=product.id,
@@ -75,6 +154,7 @@ class ProductService:
                     type=ProductType(product.type) if isinstance(product.type, str) else product.type,
                     main_image=main_image,
                     is_active=product.is_active,
+                    discount=discount,
                 )
             )
 
@@ -167,6 +247,14 @@ class ProductService:
                     )
                 )
 
+        # Вычисляем скидку
+        discount = await self._get_product_discount(
+            product_id=product.id,
+            category_id=product.category_id,
+            product_type=ProductType(product.type) if isinstance(product.type, str) else product.type,
+            price=product.price,
+        )
+
         response = ProductResponse(
             id=product.id,
             name=product.name,
@@ -184,6 +272,7 @@ class ProductService:
             created_at=product.created_at.isoformat() if product.created_at else None,
             updated_at=product.updated_at.isoformat() if product.updated_at else None,
             message="Продукт успешно найден",
+            discount=discount,
         )
         logger.info("Service: product %s retrieved", product_id)
         return response
@@ -246,6 +335,14 @@ class ProductService:
                     )
                 )
 
+        # Вычисляем скидку
+        discount = await self._get_product_discount(
+            product_id=product.id,
+            category_id=product.category_id,
+            product_type=ProductType(product.type) if isinstance(product.type, str) else product.type,
+            price=product.price,
+        )
+
         response = ProductResponse(
             id=product.id,
             name=product.name,
@@ -263,6 +360,7 @@ class ProductService:
             created_at=product.created_at.isoformat() if product.created_at else None,
             updated_at=product.updated_at.isoformat() if product.updated_at else None,
             message="Продукт успешно создан",
+            discount=discount,
         )
         logger.info("Service: product %s created", product.id)
         return response
@@ -333,6 +431,14 @@ class ProductService:
                     )
                 )
 
+        # Вычисляем скидку
+        discount = await self._get_product_discount(
+            product_id=product.id,
+            category_id=product.category_id,
+            product_type=ProductType(product.type) if isinstance(product.type, str) else product.type,
+            price=product.price,
+        )
+
         response = ProductResponse(
             id=product.id,
             name=product.name,
@@ -350,6 +456,7 @@ class ProductService:
             created_at=product.created_at.isoformat() if product.created_at else None,
             updated_at=product.updated_at.isoformat() if product.updated_at else None,
             message="Продукт успешно обновлен",
+            discount=discount,
         )
         logger.info("Service: product %s updated", product_id)
         return response

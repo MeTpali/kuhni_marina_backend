@@ -22,6 +22,13 @@ class ProductImageResponse(BaseSchema):
     is_main: bool
 
 
+class ProductDiscountInfo(BaseSchema):
+    """Информация о скидке на продукт"""
+    discount_percent: Optional[Decimal] = None  # Процент скидки
+    discount_amount: Optional[Decimal] = None   # Величина скидки в деньгах
+    final_price: Optional[Decimal] = None       # Итоговая цена с учетом скидки
+
+
 # Базовые схемы продукта
 class ProductBase(BaseSchema):
     name: str
@@ -61,6 +68,7 @@ class ProductResponse(ProductBase):
     created_at: str
     updated_at: Optional[str] = None
     message: Optional[str] = None
+    discount: Optional[ProductDiscountInfo] = None
 
 
 class ProductListItemResponse(BaseSchema):
@@ -75,6 +83,7 @@ class ProductListItemResponse(BaseSchema):
     type: ProductType
     main_image: Optional[str] = None
     is_active: bool = True
+    discount: Optional[ProductDiscountInfo] = None
 
 
 class ProductCatalogResponse(BaseSchema):

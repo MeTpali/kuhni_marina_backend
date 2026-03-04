@@ -16,6 +16,9 @@ __all__ = (
     "MeasureRequest",
     "MeasureRequestStatus",
     "Banner",
+    "Discount",
+    "DiscountType",
+    "DiscountScope",
     "DatabaseHelper",
     "db_helper",
 )
@@ -33,4 +36,5 @@ from .project_images import ProjectImage
 from .project_products import ProjectProduct
 from .measure_requests import MeasureRequest, MeasureRequestStatus
 from .banners import Banner
+from .discounts import Discount, DiscountType, DiscountScope
 from .db_helper import DatabaseHelper, db_helper

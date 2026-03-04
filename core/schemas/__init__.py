@@ -79,6 +79,13 @@ from .products import (
     ProductAttributeResponse,
     ProductImageResponse,
 )
+from .discounts import (
+    DiscountCreateRequest,
+    DiscountUpdateRequest,
+    DiscountResponse,
+    DiscountListResponse,
+    DiscountDeleteResponse,
+)
 
 __all__ = [
     "AttributeCreateRequest", "AttributeUpdateRequest",
@@ -110,4 +117,6 @@ __all__ = [
     "ProductResponse", "ProductCatalogResponse", "ProductIdListResponse",
     "ProductListResponse", "ProductDeleteResponse", "ProductListItemResponse",
     "ProductAttributeResponse", "ProductImageResponse",
+    "DiscountCreateRequest", "DiscountUpdateRequest",
+    "DiscountResponse", "DiscountListResponse", "DiscountDeleteResponse",
 ]

@@ -1,6 +1,7 @@
 from sqladmin import Admin, ModelView
 from sqladmin.authentication import AuthenticationBackend
 from fastapi import FastAPI, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.models.db_helper import db_helper
 from core.config import settings
@@ -15,6 +16,8 @@ from core.models.project_images import ProjectImage
 from core.models.project_products import ProjectProduct
 from core.models.banners import Banner
 from core.models.measure_requests import MeasureRequest, MeasureRequestStatus
+from core.models.discounts import Discount, DiscountType, DiscountScope
+from core.utils.slug import generate_unique_slug
 
 
 # ==================== Аутентификация ====================
@@ -90,7 +93,7 @@ class ProductAdmin(ModelView, model=Product):
     name_plural = "Продукты"
     icon = "fa-solid fa-box"
     column_list = [Product.id, Product.name, Product.slug, Product.category_id, Product.price, Product.type, Product.is_active, Product.created_at]
-    column_details_list = [Product.id, Product.name, Product.slug, Product.category_id, Product.description, Product.price, Product.is_new, Product.is_hit, Product.type, Product.is_active, Product.created_at, Product.updated_at]
+    column_details_list = [Product.id, Product.name, Product.slug, Product.category_id, Product.description, Product.price, Product.is_new, Product.is_hit, Product.type, Product.is_active, Product.created_at, Product.updated_at, Product.discounts]
     column_searchable_list = [Product.name, Product.slug, Product.description]
     column_sortable_list = [Product.id, Product.name, Product.price, Product.created_at]
     column_labels = {
@@ -106,8 +109,9 @@ class ProductAdmin(ModelView, model=Product):
         Product.is_active: "Активен",
         Product.created_at: "Дата создания",
         Product.updated_at: "Дата обновления",
+        Product.discounts: "Скидки",
     }
-    form_columns = [Product.name, Product.slug, Product.category, Product.description, Product.price, Product.is_new, Product.is_hit, Product.type, Product.is_active]
+    form_columns = [Product.name, Product.category, Product.description, Product.price, Product.is_new, Product.is_hit, Product.type, Product.is_active]
     form_ajax_refs = {
         "category": {
             "fields": ("name", "id"),
@@ -119,6 +123,49 @@ class ProductAdmin(ModelView, model=Product):
             "choices": [(prod_type.value, prod_type.name) for prod_type in ProductType],
         }
     }
+
+    async def insert_model(self, request: Request, data: dict) -> Product:
+        """
+        Переопределяем метод создания продукта для автоматической генерации slug.
+        """
+        # Если slug не указан или пустой, генерируем его из названия
+        if not data.get("slug") or not str(data.get("slug")).strip():
+            name = data.get("name", "")
+            if name:
+                # Получаем сессию через engine для проверки уникальности slug
+                async with AsyncSession(bind=db_helper.engine) as session:
+                    from sqlalchemy import text
+                    await session.execute(text("SET search_path TO kuhni_marina, public"))
+                    slug = await generate_unique_slug(session, Product, name)
+                    data["slug"] = slug
+        
+        # Вызываем родительский метод для создания
+        return await super().insert_model(request, data)
+
+    async def update_model(self, request: Request, pk: int, data: dict) -> Product:
+        """
+        Переопределяем метод обновления продукта для автоматической генерации slug при изменении названия.
+        """
+        # Получаем текущий продукт и генерируем slug через сессию
+        async with AsyncSession(bind=db_helper.engine) as session:
+            from sqlalchemy import select, text
+            await session.execute(text("SET search_path TO kuhni_marina, public"))
+            result = await session.execute(select(Product).where(Product.id == pk))
+            current_product = result.scalar_one_or_none()
+            
+            if current_product:
+                # Если изменилось название, но slug не указан, генерируем новый slug
+                if "name" in data and data["name"] != current_product.name:
+                    if "slug" not in data or not data.get("slug") or not str(data.get("slug")).strip():
+                        slug = await generate_unique_slug(session, Product, data["name"], exclude_id=pk)
+                        data["slug"] = slug
+                # Если slug указан явно, проверяем его уникальность
+                elif "slug" in data and data.get("slug"):
+                    slug = await generate_unique_slug(session, Product, data["slug"], exclude_id=pk)
+                    data["slug"] = slug
+        
+        # Вызываем родительский метод для обновления
+        return await super().update_model(request, pk, data)
 
 
 # ==================== Атрибуты ====================
@@ -308,6 +355,55 @@ class BannerAdmin(ModelView, model=Banner):
     form_columns = [Banner.title, Banner.image_url, Banner.link_url, Banner.position, Banner.is_active]
 
 
+# ==================== Скидки ====================
+class DiscountAdmin(ModelView, model=Discount):
+    name = "Скидка"
+    name_plural = "Скидки"
+    icon = "fa-solid fa-percent"
+    column_list = [Discount.id, Discount.name, Discount.discount_type, Discount.value, Discount.scope, Discount.is_active, Discount.start_date, Discount.end_date, Discount.priority]
+    column_details_list = [Discount.id, Discount.name, Discount.discount_type, Discount.value, Discount.scope, Discount.product_id, Discount.category_id, Discount.product_type, Discount.start_date, Discount.end_date, Discount.is_active, Discount.priority, Discount.created_at, Discount.updated_at]
+    column_searchable_list = [Discount.name]
+    column_sortable_list = [Discount.id, Discount.name, Discount.priority, Discount.start_date, Discount.end_date, Discount.created_at]
+    column_labels = {
+        Discount.id: "ID",
+        Discount.name: "Название",
+        Discount.discount_type: "Тип скидки",
+        Discount.value: "Значение",
+        Discount.scope: "Область применения",
+        Discount.product_id: "Продукт",
+        Discount.category_id: "Категория",
+        Discount.product_type: "Тип продукта",
+        Discount.start_date: "Дата начала",
+        Discount.end_date: "Дата окончания",
+        Discount.is_active: "Активна",
+        Discount.priority: "Приоритет",
+        Discount.created_at: "Дата создания",
+        Discount.updated_at: "Дата обновления",
+    }
+    form_columns = [Discount.name, Discount.discount_type, Discount.value, Discount.scope, Discount.product, Discount.category, Discount.product_type, Discount.start_date, Discount.end_date, Discount.is_active, Discount.priority]
+    form_ajax_refs = {
+        "product": {
+            "fields": ("name", "id"),
+            "order_by": "name",
+        },
+        "category": {
+            "fields": ("name", "id"),
+            "order_by": "name",
+        }
+    }
+    form_args = {
+        "discount_type": {
+            "choices": [(disc_type.value, disc_type.name) for disc_type in DiscountType],
+        },
+        "scope": {
+            "choices": [(scope.value, scope.name) for scope in DiscountScope],
+        },
+        "product_type": {
+            "choices": [(prod_type.value, prod_type.name) for prod_type in ProductType],
+        }
+    }
+
+
 # ==================== Заявки на замер ====================
 class MeasureRequestAdmin(ModelView, model=MeasureRequest):
     name = "Заявка на замер"
@@ -361,6 +457,7 @@ def setup_admin(app: FastAPI):
     admin.add_view(ProjectImageAdmin)
     admin.add_view(ProjectProductAdmin)
     admin.add_view(BannerAdmin)
+    admin.add_view(DiscountAdmin)
     admin.add_view(MeasureRequestAdmin)
 
     return admin
