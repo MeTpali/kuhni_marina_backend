@@ -104,15 +104,21 @@ class ProductService:
         page_size: int = 20,
         category_ids: List[int] = None,
         attribute_filters: List[dict] = None,
+        is_hit: Optional[bool] = None,
+        is_new: Optional[bool] = None,
+        has_discount: Optional[bool] = None,
     ) -> ProductCatalogResponse:
         """
         Получить каталог продуктов с фильтрами и пагинацией.
         """
         logger.info(
-            "Service call: get_product_catalog page=%s, page_size=%s, category_ids=%s",
+            "Service call: get_product_catalog page=%s, page_size=%s, category_ids=%s, is_hit=%s, is_new=%s, has_discount=%s",
             page,
             page_size,
             category_ids,
+            is_hit,
+            is_new,
+            has_discount,
         )
 
         products, total = await self.repository.get_product_catalog(
@@ -120,6 +126,9 @@ class ProductService:
             page_size=page_size,
             category_ids=category_ids,
             attribute_filters=attribute_filters,
+            is_hit=is_hit,
+            is_new=is_new,
+            has_discount=has_discount,
         )
 
         items = []
@@ -170,6 +179,54 @@ class ProductService:
         )
         logger.info("Service: fetched %d products (total: %d)", len(items), total)
         return response
+
+    async def get_catalog_hits(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        category_ids: List[int] = None,
+        attribute_filters: List[dict] = None,
+    ) -> ProductCatalogResponse:
+        """Получить каталог продуктов-хитов с пагинацией."""
+        return await self.get_product_catalog(
+            page=page,
+            page_size=page_size,
+            category_ids=category_ids,
+            attribute_filters=attribute_filters,
+            is_hit=True,
+        )
+
+    async def get_catalog_new(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        category_ids: List[int] = None,
+        attribute_filters: List[dict] = None,
+    ) -> ProductCatalogResponse:
+        """Получить каталог новинок с пагинацией."""
+        return await self.get_product_catalog(
+            page=page,
+            page_size=page_size,
+            category_ids=category_ids,
+            attribute_filters=attribute_filters,
+            is_new=True,
+        )
+
+    async def get_catalog_discounts(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        category_ids: List[int] = None,
+        attribute_filters: List[dict] = None,
+    ) -> ProductCatalogResponse:
+        """Получить каталог продуктов со скидкой с пагинацией."""
+        return await self.get_product_catalog(
+            page=page,
+            page_size=page_size,
+            category_ids=category_ids,
+            attribute_filters=attribute_filters,
+            has_discount=True,
+        )
 
     async def get_product_ids(
         self,

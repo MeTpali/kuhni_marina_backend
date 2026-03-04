@@ -1,13 +1,15 @@
 from typing import List, Optional, Tuple
 import logging
+from datetime import datetime
 
-from sqlalchemy import select, func, and_, or_
+from sqlalchemy import select, func, and_, or_, exists
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from core.models.products import Product, ProductType
 from core.models.product_images import ProductImage
 from core.models.product_attributes import ProductAttribute
+from core.models.discounts import Discount, DiscountScope
 from core.schemas.products import ProductCreateRequest, ProductUpdateRequest
 from core.utils.slug import generate_unique_slug
 
@@ -25,17 +27,23 @@ class ProductRepository:
         category_ids: Optional[List[int]] = None,
         attribute_filters: Optional[List[dict]] = None,  # [{"attribute_id": int, "value": str}]
         include_inactive: bool = False,
+        is_hit: Optional[bool] = None,
+        is_new: Optional[bool] = None,
+        has_discount: Optional[bool] = None,
     ) -> Tuple[List[Product], int]:
         """
         Получить каталог продуктов с фильтрами и пагинацией.
         Возвращает список продуктов и общее количество.
         """
         logger.info(
-            "Fetching product catalog: page=%s, page_size=%s, category_ids=%s, attribute_filters=%s",
+            "Fetching product catalog: page=%s, page_size=%s, category_ids=%s, attribute_filters=%s, is_hit=%s, is_new=%s, has_discount=%s",
             page,
             page_size,
             category_ids,
             attribute_filters,
+            is_hit,
+            is_new,
+            has_discount,
         )
 
         # Базовый запрос
@@ -51,6 +59,44 @@ class ProductRepository:
         # Фильтр по категориям
         if category_ids:
             query = query.where(Product.category_id.in_(category_ids))
+
+        # Фильтр по хитам
+        if is_hit is not None:
+            query = query.where(Product.is_hit.is_(is_hit))
+
+        # Фильтр по новинкам
+        if is_new is not None:
+            query = query.where(Product.is_new.is_(is_new))
+
+        # Фильтр по наличию скидки (активная скидка на продукт/категорию/тип/все)
+        if has_discount is not None:
+            now = datetime.now()
+            discount_exists = exists().where(
+                and_(
+                    Discount.is_active.is_(True),
+                    Discount.start_date <= now,
+                    Discount.end_date >= now,
+                    or_(
+                        Discount.scope == DiscountScope.ALL,
+                        and_(
+                            Discount.scope == DiscountScope.PRODUCT,
+                            Discount.product_id == Product.id,
+                        ),
+                        and_(
+                            Discount.scope == DiscountScope.CATEGORY,
+                            Discount.category_id == Product.category_id,
+                        ),
+                        and_(
+                            Discount.scope == DiscountScope.TYPE,
+                            Discount.product_type == Product.type,
+                        ),
+                    ),
+                )
+            )
+            if has_discount:
+                query = query.where(discount_exists)
+            else:
+                query = query.where(~discount_exists)
 
         # Фильтр по атрибутам
         if attribute_filters:

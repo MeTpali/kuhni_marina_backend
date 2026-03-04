@@ -32,11 +32,14 @@ async def get_product_catalog(
     attribute_filters: Optional[str] = Query(
         None, description='Фильтр по атрибутам в формате JSON: [{"attribute_id": 1, "value": "значение"}]'
     ),
+    is_hit: Optional[bool] = Query(None, description="Фильтр по хитам продаж"),
+    is_new: Optional[bool] = Query(None, description="Фильтр по новинкам"),
+    has_discount: Optional[bool] = Query(None, description="Фильтр по наличию скидки"),
     product_service: ProductService = Depends(get_product_service),
 ):
     """
     Получить каталог продуктов:
-    - Поддерживает фильтрацию по категориям и атрибутам
+    - Поддерживает фильтрацию по категориям, атрибутам, хитам, новинкам и скидкам
     - Поддерживает пагинацию
     - Возвращает краткую информацию о продуктах
     """
@@ -54,6 +57,9 @@ async def get_product_catalog(
         page_size=page_size,
         category_ids=category_ids,
         attribute_filters=attr_filters,
+        is_hit=is_hit,
+        is_new=is_new,
+        has_discount=has_discount,
     )
 
 
@@ -85,6 +91,99 @@ async def get_product_ids(
             attr_filters = None
 
     return await product_service.get_product_ids(
+        category_ids=category_ids,
+        attribute_filters=attr_filters,
+    )
+
+
+@router.get(
+    "/hits",
+    response_model=ProductCatalogResponse,
+    summary="Получить хиты продаж",
+    description="Возвращает продукты-хиты с пагинацией",
+)
+async def get_product_hits(
+    page: int = Query(1, ge=1, description="Номер страницы"),
+    page_size: int = Query(20, ge=1, le=100, description="Размер страницы"),
+    category_ids: Optional[List[int]] = Query(None, description="Фильтр по ID категорий"),
+    attribute_filters: Optional[str] = Query(
+        None, description='Фильтр по атрибутам в формате JSON: [{"attribute_id": 1, "value": "значение"}]'
+    ),
+    product_service: ProductService = Depends(get_product_service),
+):
+    """Получить каталог продуктов-хитов с пагинацией."""
+    import json
+    attr_filters = None
+    if attribute_filters:
+        try:
+            attr_filters = json.loads(attribute_filters)
+        except json.JSONDecodeError:
+            attr_filters = None
+    return await product_service.get_catalog_hits(
+        page=page,
+        page_size=page_size,
+        category_ids=category_ids,
+        attribute_filters=attr_filters,
+    )
+
+
+@router.get(
+    "/new",
+    response_model=ProductCatalogResponse,
+    summary="Получить новинки",
+    description="Возвращает новинки с пагинацией",
+)
+async def get_product_new(
+    page: int = Query(1, ge=1, description="Номер страницы"),
+    page_size: int = Query(20, ge=1, le=100, description="Размер страницы"),
+    category_ids: Optional[List[int]] = Query(None, description="Фильтр по ID категорий"),
+    attribute_filters: Optional[str] = Query(
+        None, description='Фильтр по атрибутам в формате JSON: [{"attribute_id": 1, "value": "значение"}]'
+    ),
+    product_service: ProductService = Depends(get_product_service),
+):
+    """Получить каталог новинок с пагинацией."""
+    import json
+    attr_filters = None
+    if attribute_filters:
+        try:
+            attr_filters = json.loads(attribute_filters)
+        except json.JSONDecodeError:
+            attr_filters = None
+    return await product_service.get_catalog_new(
+        page=page,
+        page_size=page_size,
+        category_ids=category_ids,
+        attribute_filters=attr_filters,
+    )
+
+
+@router.get(
+    "/discounts",
+    response_model=ProductCatalogResponse,
+    summary="Получить продукты со скидкой",
+    description="Возвращает продукты с активной скидкой с пагинацией",
+)
+async def get_product_discounts(
+    page: int = Query(1, ge=1, description="Номер страницы"),
+    page_size: int = Query(20, ge=1, le=100, description="Размер страницы"),
+    category_ids: Optional[List[int]] = Query(None, description="Фильтр по ID категорий"),
+    attribute_filters: Optional[str] = Query(
+        None, description='Фильтр по атрибутам в формате JSON: [{"attribute_id": 1, "value": "значение"}]'
+    ),
+    product_service: ProductService = Depends(get_product_service),
+):
+    """Получить каталог продуктов со скидкой с пагинацией."""
+    import json
+    attr_filters = None
+    if attribute_filters:
+        try:
+            attr_filters = json.loads(attribute_filters)
+        except json.JSONDecodeError:
+            attr_filters = None
+    return await product_service.get_catalog_discounts(
+        page=page,
+        page_size=page_size,
         category_ids=category_ids,
         attribute_filters=attr_filters,
     )
