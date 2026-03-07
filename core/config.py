@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str
     
     # Базовый URL приложения
-    HOST: str = "192.168.1.42"
+    HOST: str = "192.168.1.50"
     PORT: int = 8000
     BASE_URL: str = f"http://{HOST}:{PORT}/api/v1"
     STATIC_URL: str = f"http://{HOST}:{PORT}"
@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     # Настройки админ-панели
     ADMIN_USERNAME: str
     ADMIN_PASSWORD: str
+    
+    # Настройки Yandex Cloud
+    YC_STORAGE: str
+    YC_UPLOADER_ID: str
+    YC_UPLOADER_KEY: str
     
     class Config:
         env_file = ".env"

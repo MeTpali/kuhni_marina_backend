@@ -5,6 +5,7 @@ from services.project_images import ProjectImageService
 from core.schemas.project_images import (
     ProjectImageCreateRequest,
     ProjectImageCreateBulkRequest,
+    ProjectImagesSetRequest,
     ProjectImageResponse,
     ProjectImageListResponse,
     ProjectImageDeleteResponse,
@@ -32,6 +33,29 @@ async def get_project_images(
     - Отсортированы по project_id и id
     """
     return await project_image_service.get_all_project_images()
+
+
+@router.post(
+    "/set",
+    response_model=ProjectImageListResponse,
+    summary="Установить список изображений проекта",
+    description="Заменяет все изображения проекта на переданный список ссылок. main_index — порядковый номер (1-based) главного; не задан или некорректен — главным первое.",
+    responses={
+        200: {"description": "Список изображений проекта обновлён"},
+        400: {"description": "Некорректные данные"},
+    },
+)
+async def set_project_images(
+    request: ProjectImagesSetRequest,
+    project_image_service: ProjectImageService = Depends(get_project_image_service),
+):
+    """
+    Установить изображения проекта по id проекта:
+    - project_id, image_urls (список строк), main_index (опционально, 1-based).
+    - Если main_index не задан и у проекта нет главного — главным станет первое.
+    - Если main_index некорректен — главным станет первое изображение из списка.
+    """
+    return await project_image_service.set_project_images(request)
 
 
 @router.get(

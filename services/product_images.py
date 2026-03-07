@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from repositories.product_images import ProductImageRepository
 from core.schemas.product_images import (
     ProductImageCreateRequest,
+    ProductImagesSetRequest,
     ProductImageResponse,
     ProductImageListResponse,
     ProductImageDeleteResponse,
@@ -91,6 +92,31 @@ class ProductImageService:
         )
         logger.info("Product image created with id %s via service", product_image.id)
         return response
+
+    async def set_product_images(self, request: ProductImagesSetRequest) -> ProductImageListResponse:
+        """
+        Заменить изображения продукта на переданный список ссылок.
+        main_index — порядковый номер (1-based). Не задан или некорректен → главным первое.
+        """
+        logger.info("Setting product images via service for product_id %s", request.product_id)
+        image_urls = request.image_urls or []
+        product_images = await self.repository.set_product_images(
+            request.product_id, image_urls, request.main_index
+        )
+        items = [
+            ProductImageResponse(
+                id=pi.id,
+                product_id=pi.product_id,
+                image_url=pi.image_url,
+                is_main=pi.is_main,
+                message=None,
+            )
+            for pi in product_images
+        ]
+        return ProductImageListResponse(
+            items=items,
+            message=f"Изображения продукта обновлены: {len(items)} шт.",
+        )
 
     async def delete_product_image(self, product_image_id: int) -> ProductImageDeleteResponse:
         """

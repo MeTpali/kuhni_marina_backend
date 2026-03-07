@@ -4,6 +4,7 @@ from api.deps import get_product_image_service
 from services.product_images import ProductImageService
 from core.schemas.product_images import (
     ProductImageCreateRequest,
+    ProductImagesSetRequest,
     ProductImageResponse,
     ProductImageListResponse,
     ProductImageDeleteResponse,
@@ -31,6 +32,29 @@ async def get_product_images(
     - Отсортированы по product_id и id
     """
     return await product_image_service.get_all_product_images()
+
+
+@router.post(
+    "/set",
+    response_model=ProductImageListResponse,
+    summary="Установить список изображений продукта",
+    description="Заменяет все изображения продукта на переданный список ссылок. main_index — порядковый номер (1-based) главного; не задан или некорректен — главным первое.",
+    responses={
+        200: {"description": "Список изображений продукта обновлён"},
+        400: {"description": "Некорректные данные"},
+    },
+)
+async def set_product_images(
+    request: ProductImagesSetRequest,
+    product_image_service: ProductImageService = Depends(get_product_image_service),
+):
+    """
+    Установить изображения продукта по id продукта:
+    - product_id, image_urls (список строк), main_index (опционально, 1-based).
+    - Если main_index не задан и у продукта нет главного — главным станет первое.
+    - Если main_index некорректен — главным станет первое изображение из списка.
+    """
+    return await product_image_service.set_product_images(request)
 
 
 @router.get(

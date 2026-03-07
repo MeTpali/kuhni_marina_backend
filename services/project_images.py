@@ -6,6 +6,7 @@ from repositories.project_images import ProjectImageRepository
 from core.schemas.project_images import (
     ProjectImageCreateRequest,
     ProjectImageCreateBulkRequest,
+    ProjectImagesSetRequest,
     ProjectImageResponse,
     ProjectImageListResponse,
     ProjectImageDeleteResponse,
@@ -137,6 +138,31 @@ class ProjectImageService:
         )
         logger.info("Successfully created %d project images via service", len(items))
         return response
+
+    async def set_project_images(self, request: ProjectImagesSetRequest) -> ProjectImageListResponse:
+        """
+        Заменить изображения проекта на переданный список ссылок.
+        main_index — порядковый номер (1-based). Не задан или некорректен → главным первое.
+        """
+        logger.info("Setting project images via service for project_id %s", request.project_id)
+        image_urls = request.image_urls or []
+        project_images = await self.repository.set_project_images(
+            request.project_id, image_urls, request.main_index
+        )
+        items = [
+            ProjectImageResponse(
+                id=pi.id,
+                project_id=pi.project_id,
+                image_url=pi.image_url,
+                is_main=pi.is_main,
+                message=None,
+            )
+            for pi in project_images
+        ]
+        return ProjectImageListResponse(
+            items=items,
+            message=f"Изображения проекта обновлены: {len(items)} шт.",
+        )
 
     async def delete_project_image(self, project_image_id: int) -> ProjectImageDeleteResponse:
         """
