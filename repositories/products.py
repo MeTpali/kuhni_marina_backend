@@ -9,6 +9,8 @@ from sqlalchemy.orm import selectinload
 from core.models.products import Product, ProductType
 from core.models.product_images import ProductImage
 from core.models.product_attributes import ProductAttribute
+from core.models.categories import Category
+from core.models.attributes import Attribute
 from core.models.discounts import Discount, DiscountScope
 from core.schemas.products import ProductCreateRequest, ProductUpdateRequest
 from core.utils.slug import generate_unique_slug
@@ -55,24 +57,59 @@ class ProductRepository:
             selectinload(Product.category),
             selectinload(Product.images),
         )
+        query = self._apply_catalog_filters(
+            query,
+            category_ids=category_ids,
+            attribute_filters=attribute_filters,
+            include_inactive=include_inactive,
+            is_hit=is_hit,
+            is_new=is_new,
+            has_discount=has_discount,
+            product_type=product_type,
+            search_query=search_query,
+            apply_category_filter=True,
+            apply_attribute_filter=True,
+        )
 
-        # Фильтр по активности
+        # Подсчет общего количества
+        count_query = select(func.count()).select_from(query.subquery())
+        total_result = await self.session.execute(count_query)
+        total = total_result.scalar() or 0
+
+        # Применяем пагинацию
+        offset = (page - 1) * page_size
+        query = query.order_by(Product.id).offset(offset).limit(page_size)
+
+        result = await self.session.execute(query)
+        products = result.scalars().unique().all()
+
+        logger.info("Retrieved %d products (total: %d)", len(products), total)
+        return products, total
+
+    def _apply_catalog_filters(
+        self,
+        query,
+        *,
+        category_ids: Optional[List[int]] = None,
+        attribute_filters: Optional[List[dict]] = None,
+        include_inactive: bool = False,
+        is_hit: Optional[bool] = None,
+        is_new: Optional[bool] = None,
+        has_discount: Optional[bool] = None,
+        product_type: Optional[ProductType] = None,
+        search_query: Optional[str] = None,
+        apply_category_filter: bool = True,
+        apply_attribute_filter: bool = True,
+    ):
+        """Применить фильтры каталога к запросу. Флаги apply_* позволяют исключить категории/атрибуты для фасетов."""
         if not include_inactive:
             query = query.where(Product.is_active.is_(True))
-
-        # Фильтр по категориям
-        if category_ids:
+        if apply_category_filter and category_ids:
             query = query.where(Product.category_id.in_(category_ids))
-
-        # Фильтр по хитам
         if is_hit is not None:
             query = query.where(Product.is_hit.is_(is_hit))
-
-        # Фильтр по новинкам
         if is_new is not None:
             query = query.where(Product.is_new.is_(is_new))
-
-        # Фильтр по наличию скидки (активная скидка на продукт/категорию/тип/все)
         if has_discount is not None:
             now = datetime.now()
             discount_exists = exists().where(
@@ -101,13 +138,9 @@ class ProductRepository:
                 query = query.where(discount_exists)
             else:
                 query = query.where(~discount_exists)
-
-        # Фильтр по типу продукта
         if product_type is not None:
             type_val = product_type.value if hasattr(product_type, "value") else product_type
             query = query.where(Product.type == type_val)
-
-        # Поиск по тексту (название и описание)
         if search_query and search_query.strip():
             q = f"%{search_query.strip()}%"
             query = query.where(
@@ -116,10 +149,7 @@ class ProductRepository:
                     Product.description.ilike(q),
                 )
             )
-
-        # Фильтр по атрибутам
-        if attribute_filters:
-            # Создаем подзапрос для продуктов, которые соответствуют всем фильтрам атрибутов
+        if apply_attribute_filter and attribute_filters:
             attribute_conditions = []
             for attr_filter in attribute_filters:
                 attr_id = attr_filter.get("attribute_id")
@@ -132,25 +162,118 @@ class ProductRepository:
                         )
                     )
                     attribute_conditions.append(Product.id.in_(subquery))
-
             if attribute_conditions:
-                # Продукт должен соответствовать всем условиям (AND)
                 query = query.where(and_(*attribute_conditions))
+        return query
 
-        # Подсчет общего количества
-        count_query = select(func.count()).select_from(query.subquery())
-        total_result = await self.session.execute(count_query)
-        total = total_result.scalar() or 0
-
-        # Применяем пагинацию
-        offset = (page - 1) * page_size
-        query = query.order_by(Product.id).offset(offset).limit(page_size)
-
+    async def get_catalog_category_facets(
+        self,
+        *,
+        include_inactive: bool = False,
+        is_hit: Optional[bool] = None,
+        is_new: Optional[bool] = None,
+        has_discount: Optional[bool] = None,
+        product_type: Optional[ProductType] = None,
+        search_query: Optional[str] = None,
+    ) -> List[Tuple[int, str, str, int]]:
+        """
+        Фасет категорий: выборка без category_ids и attribute_filters.
+        Возвращает список (category_id, name, slug, count).
+        При непустом search — только категории из выдачи по поиску.
+        """
+        query = (
+            select(Product.category_id, Category.name, Category.slug, func.count(Product.id).label("cnt"))
+            .join(Category, Product.category_id == Category.id)
+            .where(Category.is_active.is_(True))
+        )
+        query = self._apply_catalog_filters(
+            query,
+            category_ids=None,
+            attribute_filters=None,
+            include_inactive=include_inactive,
+            is_hit=is_hit,
+            is_new=is_new,
+            has_discount=has_discount,
+            product_type=product_type,
+            search_query=search_query,
+            apply_category_filter=False,
+            apply_attribute_filter=False,
+        )
+        query = query.group_by(Product.category_id, Category.id, Category.name, Category.slug)
         result = await self.session.execute(query)
-        products = result.scalars().unique().all()
+        rows = result.all()
+        return [(r.category_id, r.name, r.slug, r.cnt) for r in rows]
 
-        logger.info("Retrieved %d products (total: %d)", len(products), total)
-        return products, total
+    async def get_catalog_attribute_facets(
+        self,
+        *,
+        category_ids: Optional[List[int]] = None,
+        include_inactive: bool = False,
+        is_hit: Optional[bool] = None,
+        is_new: Optional[bool] = None,
+        has_discount: Optional[bool] = None,
+        product_type: Optional[ProductType] = None,
+        search_query: Optional[str] = None,
+    ) -> List[Tuple[int, str, Optional[str], str, int]]:
+        """
+        Фасет атрибутов: выборка без attribute_filters (category_ids и остальное применяются).
+        Возвращает список (attribute_id, attribute_name, unit, value, count).
+        """
+        # Подзапрос: product_id, удовлетворяющие фильтрам (без атрибутов)
+        subq = select(Product.id)
+        if not include_inactive:
+            subq = subq.where(Product.is_active.is_(True))
+        if category_ids:
+            subq = subq.where(Product.category_id.in_(category_ids))
+        if is_hit is not None:
+            subq = subq.where(Product.is_hit.is_(is_hit))
+        if is_new is not None:
+            subq = subq.where(Product.is_new.is_(is_new))
+        if has_discount is not None:
+            now = datetime.now()
+            discount_exists = exists().where(
+                and_(
+                    Discount.is_active.is_(True),
+                    Discount.start_date <= now,
+                    Discount.end_date >= now,
+                    or_(
+                        Discount.scope == DiscountScope.ALL,
+                        and_(Discount.scope == DiscountScope.PRODUCT, Discount.product_id == Product.id),
+                        and_(Discount.scope == DiscountScope.CATEGORY, Discount.category_id == Product.category_id),
+                        and_(Discount.scope == DiscountScope.TYPE, Discount.product_type == Product.type),
+                    ),
+                )
+            )
+            subq = subq.where(discount_exists if has_discount else ~discount_exists)
+        if product_type is not None:
+            type_val = product_type.value if hasattr(product_type, "value") else product_type
+            subq = subq.where(Product.type == type_val)
+        if search_query and search_query.strip():
+            q = f"%{search_query.strip()}%"
+            subq = subq.where(or_(Product.name.ilike(q), Product.description.ilike(q)))
+        subq = subq.subquery()
+
+        query = (
+            select(
+                ProductAttribute.attribute_id,
+                Attribute.name.label("attr_name"),
+                Attribute.unit,
+                ProductAttribute.value,
+                func.count(ProductAttribute.product_id.distinct()).label("cnt"),
+            )
+            .select_from(ProductAttribute)
+            .join(Attribute, ProductAttribute.attribute_id == Attribute.id)
+            .where(ProductAttribute.product_id.in_(subq))
+            .group_by(
+                ProductAttribute.attribute_id,
+                Attribute.name,
+                Attribute.unit,
+                ProductAttribute.value,
+            )
+        )
+        result = await self.session.execute(query)
+        rows = result.all()
+        return [(r.attribute_id, r.attr_name, r.unit, r.value, r.cnt) for r in rows]
 
     async def get_product_search_suggestions(
         self,

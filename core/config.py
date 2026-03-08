@@ -29,9 +29,9 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str
     
     # Настройки Yandex Cloud
-    YC_STORAGE: str
-    YC_UPLOADER_ID: str
-    YC_UPLOADER_KEY: str
+    YC_STORAGE: str # Название бакета в Yandex Cloud
+    YC_UPLOADER_ID: str # Идентификатор ключа доступа
+    YC_UPLOADER_KEY: str # Секретный ключ доступа
     
     class Config:
         env_file = ".env"

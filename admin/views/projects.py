@@ -1,3 +1,4 @@
+import asyncio
 from urllib.parse import quote
 
 from fastapi import Request
@@ -11,6 +12,7 @@ from admin.bulk_assets import bulk_images_html
 from admin.helpers import with_image_session
 from core.models.project_images import ProjectImage
 from core.models.projects import Project
+from core.storage import upload_project_image as storage_upload_project_image
 from core.models.project_products import ProjectProduct
 from repositories.project_images import ProjectImageRepository
 
@@ -139,8 +141,7 @@ class BulkProjectImagesAdmin(BaseView):
         base_path = "/admin/bulk-project-images"
         if request.method == "POST":
             form = await request.form()
-            project_id_str = form.get("project_id", "").strip()
-            urls_text = form.get("image_urls", "") or ""
+            project_id_str = (form.get("project_id") or "").strip()
             main_index_str = (form.get("main_index") or "").strip()
             if not project_id_str:
                 return RedirectResponse(base_path + "?error=Выберите+проект", status_code=303)
@@ -148,13 +149,35 @@ class BulkProjectImagesAdmin(BaseView):
                 project_id = int(project_id_str)
             except ValueError:
                 return RedirectResponse(base_path + "?error=Некорректный+проект", status_code=303)
-            image_urls = [u.strip() for u in urls_text.splitlines() if u.strip()]
             main_index = None
             if main_index_str:
                 try:
                     main_index = int(main_index_str)
                 except ValueError:
                     pass
+            files = form.getlist("images") if hasattr(form, "getlist") else []
+            if not files:
+                return RedirectResponse(base_path + "?error=Выберите+хотя+бы+один+файл", status_code=303)
+            image_urls = []
+            for f in files:
+                if getattr(f, "filename", None) is None or not getattr(f, "read", None):
+                    continue
+                try:
+                    data = await f.read()
+                    content_type = getattr(f, "content_type", None) or ""
+                    filename = getattr(f, "filename", None)
+                    url = await asyncio.to_thread(
+                        storage_upload_project_image,
+                        project_id,
+                        data,
+                        content_type or None,
+                        filename,
+                    )
+                    image_urls.append(url)
+                except ValueError as e:
+                    return RedirectResponse(base_path + "?error=" + quote(str(e)), status_code=303)
+            if not image_urls:
+                return RedirectResponse(base_path + "?error=Нет+допустимых+изображений", status_code=303)
             async def _add(session: AsyncSession):
                 repo = ProjectImageRepository(session)
                 return await repo.add_project_images(project_id, image_urls, main_index)

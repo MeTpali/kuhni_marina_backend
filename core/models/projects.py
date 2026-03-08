@@ -23,7 +23,7 @@ class Project(Base):
     # Адрес или район
     location = Column(String, nullable=True)
     # Дата добавления
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
 
     # Связи
     images = relationship("ProjectImage", back_populates="project", cascade="all, delete-orphan")

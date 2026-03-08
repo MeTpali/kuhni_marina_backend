@@ -40,5 +40,5 @@ class MeasureRequest(Base):
     # Статус заявки
     status = Column(Enum(MeasureRequestStatus, name="measure_request_status", create_type=False), default=MeasureRequestStatus.NEW, nullable=False)
     # Дата создания
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
 

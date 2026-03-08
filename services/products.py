@@ -6,8 +6,10 @@ from decimal import Decimal
 from fastapi import HTTPException, status
 
 from repositories.products import ProductRepository
+from repositories.categories import CategoryRepository
 from repositories.discounts import DiscountRepository
 from core.models.products import ProductType
+from core.models.categories import CategoryType
 from core.models.discounts import DiscountType
 from core.schemas.products import (
     ProductCreateRequest,
@@ -23,6 +25,10 @@ from core.schemas.products import (
     ProductDiscountInfo,
     ProductSuggestionItemResponse,
     ProductSearchSuggestionsResponse,
+    CatalogFacets,
+    CategoryFacetTreeNode,
+    AttributeFacetItem,
+    AttributeFacetValue,
 )
 from core.schemas.categories import CategoryResponse
 
@@ -110,6 +116,46 @@ class ProductService:
             return s
         return s[:max_length].rstrip() + "..."
 
+    @staticmethod
+    def _build_category_facet_tree(
+        categories_flat: list,
+        facet_count_by_id: dict,
+    ) -> List[CategoryFacetTreeNode]:
+        """
+        Строит дерево категорий для фасета. В каждом узле count = прямые товары этой категории;
+        после агрегации у родителя count += сумма count всех детей (итого у родителя — сумма по поддереву).
+        """
+        nodes: dict[int, CategoryFacetTreeNode] = {}
+        roots: List[CategoryFacetTreeNode] = []
+
+        for cat in categories_flat:
+            node = CategoryFacetTreeNode(
+                id=cat.id,
+                name=cat.name,
+                slug=cat.slug,
+                count=facet_count_by_id.get(cat.id, 0),
+                children=[],
+            )
+            nodes[cat.id] = node
+
+        for cat in categories_flat:
+            node = nodes[cat.id]
+            parent_id = getattr(cat, "parent_id", None)
+            if parent_id and parent_id in nodes:
+                nodes[parent_id].children.append(node)
+            else:
+                roots.append(node)
+
+        def aggregate_count(node: CategoryFacetTreeNode) -> None:
+            for child in node.children:
+                aggregate_count(child)
+            node.count += sum(c.count for c in node.children)
+
+        for root in roots:
+            aggregate_count(root)
+
+        return roots
+
     async def get_product_catalog(
         self,
         page: int = 1,
@@ -148,6 +194,50 @@ class ProductService:
             product_type=product_type,
             search_query=search_query,
         )
+
+        # Фасеты: категории (дерево с count = сумма по себе и потомкам), атрибуты (без attribute_filters)
+        category_facet_rows = await self.repository.get_catalog_category_facets(
+            is_hit=is_hit,
+            is_new=is_new,
+            has_discount=has_discount,
+            product_type=product_type,
+            search_query=search_query,
+        )
+        attribute_facet_rows = await self.repository.get_catalog_attribute_facets(
+            category_ids=category_ids,
+            is_hit=is_hit,
+            is_new=is_new,
+            has_discount=has_discount,
+            product_type=product_type,
+            search_query=search_query,
+        )
+
+        # Прямые счётчики по category_id (товары с этой категорией)
+        facet_count_by_id = {cat_id: count for cat_id, _name, _slug, count in category_facet_rows}
+
+        # Дерево категорий: берём по типу продукта или все
+        category_repo = CategoryRepository(self.repository.session)
+        if product_type is not None:
+            cat_type = CategoryType(product_type.value) if hasattr(product_type, "value") else product_type
+            categories_flat = await category_repo.get_categories_by_type(cat_type)
+        else:
+            categories_flat = await category_repo.get_all_categories()
+
+        categories_facet = self._build_category_facet_tree(categories_flat, facet_count_by_id)
+        # Группируем атрибуты по attribute_id
+        attr_map: dict = {}
+        for attr_id, attr_name, unit, value, count in attribute_facet_rows:
+            if attr_id not in attr_map:
+                attr_map[attr_id] = AttributeFacetItem(
+                    attribute_id=attr_id,
+                    attribute_name=attr_name,
+                    unit=unit,
+                    values=[],
+                )
+            attr_map[attr_id].values.append(AttributeFacetValue(value=value, count=count))
+        attributes_facet = list(attr_map.values())
+
+        facets = CatalogFacets(categories=categories_facet, attributes=attributes_facet)
 
         items = []
         for product in products:
@@ -193,6 +283,7 @@ class ProductService:
             page=page,
             page_size=page_size,
             total_pages=total_pages,
+            facets=facets,
             message="Каталог продуктов успешно получен",
         )
         logger.info("Service: fetched %d products (total: %d)", len(items), total)

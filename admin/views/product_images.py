@@ -7,9 +7,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse
 
+import asyncio
+
 from admin.bulk_assets import bulk_images_html
 from admin.helpers import with_image_session
 from core.models.product_images import ProductImage
+from core.storage import upload_product_image as storage_upload_product_image
 from core.models.products import Product
 from repositories.product_images import ProductImageRepository
 
@@ -121,8 +124,7 @@ class BulkProductImagesAdmin(BaseView):
         base_path = "/admin/bulk-product-images"
         if request.method == "POST":
             form = await request.form()
-            product_id_str = form.get("product_id", "").strip()
-            urls_text = form.get("image_urls", "") or ""
+            product_id_str = (form.get("product_id") or "").strip()
             main_index_str = (form.get("main_index") or "").strip()
             if not product_id_str:
                 return RedirectResponse(base_path + "?error=Выберите+продукт", status_code=303)
@@ -130,13 +132,36 @@ class BulkProductImagesAdmin(BaseView):
                 product_id = int(product_id_str)
             except ValueError:
                 return RedirectResponse(base_path + "?error=Некорректный+продукт", status_code=303)
-            image_urls = [u.strip() for u in urls_text.splitlines() if u.strip()]
             main_index = None
             if main_index_str:
                 try:
                     main_index = int(main_index_str)
                 except ValueError:
                     pass
+            # Список файлов: multipart может отдать один или несколько под ключом "images"
+            files = form.getlist("images") if hasattr(form, "getlist") else []
+            if not files:
+                return RedirectResponse(base_path + "?error=Выберите+хотя+бы+один+файл", status_code=303)
+            image_urls = []
+            for f in files:
+                if getattr(f, "filename", None) is None or not getattr(f, "read", None):
+                    continue
+                try:
+                    data = await f.read()
+                    content_type = getattr(f, "content_type", None) or ""
+                    filename = getattr(f, "filename", None)
+                    url = await asyncio.to_thread(
+                        storage_upload_product_image,
+                        product_id,
+                        data,
+                        content_type or None,
+                        filename,
+                    )
+                    image_urls.append(url)
+                except ValueError as e:
+                    return RedirectResponse(base_path + "?error=" + quote(str(e)), status_code=303)
+            if not image_urls:
+                return RedirectResponse(base_path + "?error=Нет+допустимых+изображений", status_code=303)
             async def _add(session: AsyncSession):
                 repo = ProductImageRepository(session)
                 return await repo.add_product_images(product_id, image_urls, main_index)

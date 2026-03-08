@@ -41,6 +41,9 @@ BULK_IMAGES_CSS = """
 .bulk-btn:hover { background: var(--bulk-primary-hover); }
 .bulk-back { display: inline-block; margin-top: 1rem; color: var(--bulk-muted); font-size: 0.9375rem; text-decoration: none; }
 .bulk-back:hover { color: var(--bulk-primary); }
+.bulk-file-input { width: 100%; padding: 0.625rem 0.875rem; border: 2px dashed var(--bulk-border); border-radius: 8px; font-size: 0.9375rem; box-sizing: border-box; background: #fafafa; cursor: pointer; }
+.bulk-file-input:hover { border-color: var(--bulk-primary); background: #f0f7ff; }
+.bulk-hint { font-size: 0.8125rem; color: var(--bulk-muted); margin-top: 0.375rem; }
 """
 
 BULK_IMAGES_JS_COMBO = """
@@ -129,7 +132,7 @@ def bulk_images_html(
       <p class="bulk-subtitle">{subtitle}</p>
       {alert_error}
       {alert_success}
-      <form method="post" action="">
+      <form method="post" action="" enctype="multipart/form-data">
         <div class="bulk-form-group">
           <label for="{input_id}">{entity_label}</label>
           <div class="bulk-combo-wrap">
@@ -138,14 +141,15 @@ def bulk_images_html(
           </div>
         </div>
         <div class="bulk-form-group">
-          <label for="image_urls">URL изображений (по одному на строку)</label>
-          <textarea id="image_urls" name="image_urls" class="bulk-input bulk-textarea" placeholder="https://example.com/1.jpg&#10;https://example.com/2.jpg"></textarea>
+          <label for="images">Файлы изображений</label>
+          <input type="file" id="images" name="images" class="bulk-file-input" accept="image/jpeg,image/png,image/gif,image/webp" multiple required>
+          <p class="bulk-hint">JPEG, PNG, GIF или WebP. Максимум 10 МБ на файл. Порядок файлов сохраняется.</p>
         </div>
         <div class="bulk-form-group">
           <label for="main_index">Номер главного изображения (необязательно, 1 = первое)</label>
           <input type="number" id="main_index" name="main_index" class="bulk-input" min="1" placeholder="1">
         </div>
-        <button type="submit" class="bulk-btn">Сохранить</button>
+        <button type="submit" class="bulk-btn">Загрузить и сохранить</button>
       </form>
     </div>
     <a href="/admin/" class="bulk-back">← Назад в админку</a>

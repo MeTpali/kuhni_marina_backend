@@ -29,7 +29,7 @@ class Review(Base):
     # Текст отзыва
     text = Column(Text, nullable=False)
     # Дата публикации
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
     # Одобрен ли модератором
     is_approved = Column(Boolean, default=False, nullable=False)
 

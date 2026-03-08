@@ -86,12 +86,51 @@ class ProductListItemResponse(BaseSchema):
     discount: Optional[ProductDiscountInfo] = None
 
 
+# Фасеты для фильтров каталога
+class CategoryFacetItem(BaseSchema):
+    id: int
+    name: str
+    slug: str
+    count: int
+
+
+class CategoryFacetTreeNode(BaseSchema):
+    """Узел дерева категорий в фасете: count у родителя = сумма по себе и всем потомкам."""
+    id: int
+    name: str
+    slug: str
+    count: int = 0
+    children: List["CategoryFacetTreeNode"] = Field(default_factory=list)
+
+
+class AttributeFacetValue(BaseSchema):
+    value: str
+    count: int
+
+
+class AttributeFacetItem(BaseSchema):
+    attribute_id: int
+    attribute_name: str
+    unit: Optional[str] = None
+    values: List[AttributeFacetValue] = Field(default_factory=list)
+
+
+class CatalogFacets(BaseSchema):
+    categories: List[CategoryFacetTreeNode] = Field(default_factory=list)
+    attributes: List[AttributeFacetItem] = Field(default_factory=list)
+
+
+# Разрешение прямой ссылки в CategoryFacetTreeNode
+CategoryFacetTreeNode.model_rebuild()
+
+
 class ProductCatalogResponse(BaseSchema):
     items: List[ProductListItemResponse]
     total: int
     page: int
     page_size: int
     total_pages: int
+    facets: Optional[CatalogFacets] = None
     message: Optional[str] = None
 
 

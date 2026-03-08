@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, status, UploadFile
 
-from api.deps import get_product_image_service
+from api.deps import get_product_image_service, get_product_repository
+from repositories.products import ProductRepository
 from services.product_images import ProductImageService
 from core.schemas.product_images import (
     ProductImageCreateRequest,
@@ -55,6 +56,31 @@ async def set_product_images(
     - Если main_index некорректен — главным станет первое изображение из списка.
     """
     return await product_image_service.set_product_images(request)
+
+
+@router.post(
+    "/upload",
+    response_model=ProductImageResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Загрузить изображение продукта",
+    description="Загружает файл в Yandex Object Storage и создаёт запись изображения продукта. Структура в бакете: products/{product_id}/{uuid}.{ext}",
+    responses={
+        201: {"description": "Изображение загружено и создано"},
+        400: {"description": "Некорректный файл или данные"},
+        404: {"description": "Продукт не найден"},
+    },
+)
+async def upload_product_image(
+    product_id: int = Form(..., description="ID продукта"),
+    is_main: bool = Form(False, description="Сделать изображение главным"),
+    file: UploadFile = File(..., description="Файл изображения (JPEG, PNG, GIF, WebP; макс. 10 МБ)"),
+    product_image_service: ProductImageService = Depends(get_product_image_service),
+    product_repository: ProductRepository = Depends(get_product_repository),
+):
+    product = await product_repository.get_product_by_id(product_id, include_inactive=True)
+    if not product:
+        raise HTTPException(status_code=404, detail="Продукт не найден")
+    return await product_image_service.upload_product_image(product_id, file, is_main)
 
 
 @router.get(

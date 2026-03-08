@@ -1,7 +1,10 @@
+import asyncio
 import logging
 
 from fastapi import HTTPException, status
+from fastapi import UploadFile
 
+from core.storage import upload_project_image as storage_upload_project_image
 from repositories.project_images import ProjectImageRepository
 from core.schemas.project_images import (
     ProjectImageCreateRequest,
@@ -93,6 +96,38 @@ class ProjectImageService:
         )
         logger.info("Project image created with id %s via service", project_image.id)
         return response
+
+    async def upload_project_image(
+        self,
+        project_id: int,
+        file: UploadFile,
+        is_main: bool = False,
+    ) -> ProjectImageResponse:
+        """
+        Загрузить файл в Yandex Object Storage и создать запись изображения проекта.
+        """
+        content = await file.read()
+        if not content:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Файл пустой",
+            )
+        try:
+            image_url = await asyncio.to_thread(
+                storage_upload_project_image,
+                project_id,
+                content,
+                file.content_type,
+                file.filename,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        request = ProjectImageCreateRequest(
+            project_id=project_id,
+            image_url=image_url,
+            is_main=is_main,
+        )
+        return await self.create_project_image(request)
 
     async def create_multiple_project_images(
         self,

@@ -1,7 +1,10 @@
+import asyncio
 import logging
 
 from fastapi import HTTPException, status
+from fastapi import UploadFile
 
+from core.storage import upload_product_image as storage_upload_product_image
 from repositories.product_images import ProductImageRepository
 from core.schemas.product_images import (
     ProductImageCreateRequest,
@@ -92,6 +95,38 @@ class ProductImageService:
         )
         logger.info("Product image created with id %s via service", product_image.id)
         return response
+
+    async def upload_product_image(
+        self,
+        product_id: int,
+        file: UploadFile,
+        is_main: bool = False,
+    ) -> ProductImageResponse:
+        """
+        Загрузить файл в Yandex Object Storage и создать запись изображения продукта.
+        """
+        content = await file.read()
+        if not content:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Файл пустой",
+            )
+        try:
+            image_url = await asyncio.to_thread(
+                storage_upload_product_image,
+                product_id,
+                content,
+                file.content_type,
+                file.filename,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        request = ProductImageCreateRequest(
+            product_id=product_id,
+            image_url=image_url,
+            is_main=is_main,
+        )
+        return await self.create_product_image(request)
 
     async def set_product_images(self, request: ProductImagesSetRequest) -> ProductImageListResponse:
         """

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, status, UploadFile
 
-from api.deps import get_project_image_service
+from api.deps import get_project_image_service, get_project_repository
+from repositories.projects import ProjectRepository
 from services.project_images import ProjectImageService
 from core.schemas.project_images import (
     ProjectImageCreateRequest,
@@ -56,6 +57,31 @@ async def set_project_images(
     - Если main_index некорректен — главным станет первое изображение из списка.
     """
     return await project_image_service.set_project_images(request)
+
+
+@router.post(
+    "/upload",
+    response_model=ProjectImageResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Загрузить изображение проекта",
+    description="Загружает файл в Yandex Object Storage и создаёт запись изображения проекта. Структура в бакете: projects/{project_id}/{uuid}.{ext}",
+    responses={
+        201: {"description": "Изображение загружено и создано"},
+        400: {"description": "Некорректный файл или данные"},
+        404: {"description": "Проект не найден"},
+    },
+)
+async def upload_project_image(
+    project_id: int = Form(..., description="ID проекта"),
+    is_main: bool = Form(False, description="Сделать изображение главным"),
+    file: UploadFile = File(..., description="Файл изображения (JPEG, PNG, GIF, WebP; макс. 10 МБ)"),
+    project_image_service: ProjectImageService = Depends(get_project_image_service),
+    project_repository: ProjectRepository = Depends(get_project_repository),
+):
+    project = await project_repository.get_project_by_id(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Проект не найден")
+    return await project_image_service.upload_project_image(project_id, file, is_main)
 
 
 @router.get(
