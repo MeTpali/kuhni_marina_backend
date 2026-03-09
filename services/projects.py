@@ -1,4 +1,5 @@
 import logging
+from math import ceil
 
 from fastapi import HTTPException, status
 
@@ -29,12 +30,16 @@ class ProjectService:
         self.project_image_repository = project_image_repository
         self.project_product_repository = project_product_repository
 
-    async def get_all_projects(self) -> ProjectListResponse:
+    async def get_all_projects(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> ProjectListResponse:
         """
-        Получить список всех проектов.
+        Получить список всех проектов с пагинацией.
         """
-        logger.info("Fetching all projects via service")
-        projects = await self.repository.get_all_projects()
+        logger.info("Fetching projects via service: page=%s, page_size=%s", page, page_size)
+        projects, total = await self.repository.get_all_projects(page=page, page_size=page_size)
         items = [
             ProjectResponse(
                 id=project.id,
@@ -49,9 +54,13 @@ class ProjectService:
 
         response = ProjectListResponse(
             items=items,
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=ceil(total / page_size) if page_size > 0 else 0,
             message="Список проектов успешно получен",
         )
-        logger.info("Successfully fetched %d projects", len(items))
+        logger.info("Successfully fetched %d projects (total: %d)", len(items), total)
         return response
 
     async def get_project_by_id(self, project_id: int) -> ProjectDetailResponse:

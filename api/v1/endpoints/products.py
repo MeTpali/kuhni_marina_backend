@@ -37,6 +37,7 @@ async def get_product_catalog(
     is_hit: Optional[bool] = Query(None, description="Фильтр по хитам продаж"),
     is_new: Optional[bool] = Query(None, description="Фильтр по новинкам"),
     has_discount: Optional[bool] = Query(None, description="Фильтр по наличию скидки"),
+    campaign_id: Optional[int] = Query(None, description="Фильтр по ID акции"),
     type: Optional[ProductType] = Query(None, description="Фильтр по типу продукта (KITCHEN, FURNITURE)"),
     search: Optional[str] = Query(None, description="Поиск по названию и описанию"),
     product_service: ProductService = Depends(get_product_service),
@@ -65,6 +66,7 @@ async def get_product_catalog(
         is_hit=is_hit,
         is_new=is_new,
         has_discount=has_discount,
+        campaign_id=campaign_id,
         product_type=type,
         search_query=search,
     )

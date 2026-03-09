@@ -1,7 +1,7 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.models.projects import Project
@@ -14,16 +14,32 @@ class ProjectRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_all_projects(self) -> List[Project]:
+    async def get_all_projects(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> Tuple[List[Project], int]:
         """
-        Получить список всех проектов.
+        Получить список всех проектов с пагинацией.
         """
-        logger.info("Fetching all projects")
-        query = select(Project).order_by(Project.created_at.desc(), Project.id)
+        logger.info("Fetching projects with pagination: page=%s, page_size=%s", page, page_size)
+        offset = (page - 1) * page_size
+
+        query = (
+            select(Project)
+            .order_by(Project.created_at.desc(), Project.id)
+            .offset(offset)
+            .limit(page_size)
+        )
+        count_query = select(func.count(Project.id))
+
         result = await self.session.execute(query)
         projects = result.scalars().all()
-        logger.info("Retrieved %d projects", len(projects))
-        return projects
+        count_result = await self.session.execute(count_query)
+        total = count_result.scalar() or 0
+
+        logger.info("Retrieved %d projects (total: %d)", len(projects), total)
+        return projects, total
 
     async def get_project_by_id(self, project_id: int) -> Optional[Project]:
         """

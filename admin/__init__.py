@@ -16,6 +16,7 @@ from admin.views import (
     BulkProductImagesAdmin,
     BulkProjectImagesAdmin,
     CategoryAdmin,
+    CampaignAdmin,
     DiscountAdmin,
     MeasureRequestAdmin,
     ProductAdmin,
@@ -57,6 +58,7 @@ def setup_admin(app: FastAPI) -> Admin:
     admin.add_view(BulkProjectImagesAdmin)
     admin.add_view(ProjectProductAdmin)
     admin.add_view(BannerAdmin)
+    admin.add_view(CampaignAdmin)
     admin.add_view(DiscountAdmin)
     admin.add_view(MeasureRequestAdmin)
 

@@ -20,6 +20,7 @@ CREATE TABLE discounts (
     discount_type discount_type NOT NULL,
     value NUMERIC(10, 2) NOT NULL,
     scope discount_scope NOT NULL,
+    campaign_id INTEGER REFERENCES campaigns(id) ON DELETE SET NULL,
     product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
     category_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
     product_type category_type,
@@ -46,6 +47,7 @@ CREATE INDEX idx_discount_scope ON discounts(scope);
 CREATE INDEX idx_discount_priority ON discounts(priority DESC);
 
 -- Индексы для внешних ключей (для быстрых JOIN)
+CREATE INDEX idx_discount_campaign_id ON discounts(campaign_id) WHERE campaign_id IS NOT NULL;
 CREATE INDEX idx_discount_product_id ON discounts(product_id) WHERE product_id IS NOT NULL;
 CREATE INDEX idx_discount_category_id ON discounts(category_id) WHERE category_id IS NOT NULL;
 
@@ -70,6 +72,7 @@ COMMENT ON COLUMN discounts.name IS 'Название акции/скидки';
 COMMENT ON COLUMN discounts.discount_type IS 'Тип скидки: PERCENTAGE (процентная) или FIXED (фиксированная)';
 COMMENT ON COLUMN discounts.value IS 'Значение скидки (процент или сумма)';
 COMMENT ON COLUMN discounts.scope IS 'Область применения: PRODUCT, CATEGORY, TYPE, ALL';
+COMMENT ON COLUMN discounts.campaign_id IS 'ID маркетинговой акции, к которой относится скидка';
 COMMENT ON COLUMN discounts.product_id IS 'ID продукта (если scope = PRODUCT)';
 COMMENT ON COLUMN discounts.category_id IS 'ID категории (если scope = CATEGORY)';
 COMMENT ON COLUMN discounts.product_type IS 'Тип продукта (если scope = TYPE)';

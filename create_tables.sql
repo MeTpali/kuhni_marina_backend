@@ -161,3 +161,25 @@ CREATE TABLE banners (
 CREATE INDEX idx_banners_position ON banners(position);
 CREATE INDEX idx_banners_is_active ON banners(is_active);
 
+-- 14. Создание таблицы campaigns
+CREATE TABLE campaigns (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    description TEXT,
+    banner_image_url TEXT,
+    landing_url TEXT,
+    badge_text TEXT,
+    start_date TIMESTAMP NOT NULL,
+    end_date TIMESTAMP NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    priority INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+CREATE INDEX idx_campaigns_slug ON campaigns(slug);
+CREATE INDEX idx_campaigns_dates ON campaigns(start_date, end_date);
+CREATE INDEX idx_campaigns_active ON campaigns(is_active);
+CREATE INDEX idx_campaigns_priority ON campaigns(priority DESC);
+

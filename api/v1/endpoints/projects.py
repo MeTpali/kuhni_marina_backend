@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from api.deps import get_project_service
 from services.projects import ProjectService
@@ -25,14 +25,16 @@ router = APIRouter(
     description="Возвращает список всех проектов",
 )
 async def get_projects(
+    page: int = Query(1, ge=1, description="Номер страницы"),
+    page_size: int = Query(20, ge=1, le=100, description="Размер страницы"),
     project_service: ProjectService = Depends(get_project_service),
 ):
     """
     Получить список всех проектов:
-    - Возвращает все существующие проекты
+    - Возвращает проекты постранично
     - Отсортированы по дате создания (новые сначала)
     """
-    return await project_service.get_all_projects()
+    return await project_service.get_all_projects(page=page, page_size=page_size)
 
 
 @router.get(

@@ -7,11 +7,11 @@ from api.v1.endpoints import (
     measure_requests,
     product_attributes,
     product_images,
-    project_products,
     project_images,
     projects,
     reviews,
     discounts,
+    campaigns,
 )
 
 api_router = APIRouter()
@@ -23,8 +23,8 @@ api_router.include_router(banners.router)
 api_router.include_router(measure_requests.router)
 api_router.include_router(product_attributes.router)
 api_router.include_router(product_images.router)
-api_router.include_router(project_products.router)
 api_router.include_router(project_images.router)
 api_router.include_router(projects.router)
 api_router.include_router(reviews.router)
 api_router.include_router(discounts.router)
+api_router.include_router(campaigns.router)

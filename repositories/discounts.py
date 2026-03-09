@@ -24,6 +24,7 @@ class DiscountRepository:
         include_inactive: bool = False,
         scope: Optional[DiscountScope] = None,
         discount_type: Optional[DiscountType] = None,
+        campaign_id: Optional[int] = None,
         product_id: Optional[int] = None,
         category_id: Optional[int] = None,
         product_type: Optional[ProductType] = None,
@@ -41,6 +42,7 @@ class DiscountRepository:
 
         # Базовый запрос
         query = select(Discount).options(
+            selectinload(Discount.campaign),
             selectinload(Discount.product),
             selectinload(Discount.category),
         )
@@ -59,6 +61,9 @@ class DiscountRepository:
 
         if discount_type is not None:
             conditions.append(Discount.discount_type == discount_type)
+
+        if campaign_id is not None:
+            conditions.append(Discount.campaign_id == campaign_id)
 
         if product_id is not None:
             conditions.append(Discount.product_id == product_id)
@@ -121,6 +126,7 @@ class DiscountRepository:
         query = (
             select(Discount)
             .options(
+                selectinload(Discount.campaign),
                 selectinload(Discount.product),
                 selectinload(Discount.category),
             )
@@ -147,6 +153,7 @@ class DiscountRepository:
             discount_type=request.discount_type,
             value=request.value,
             scope=request.scope,
+            campaign_id=request.campaign_id,
             product_id=request.product_id,
             category_id=request.category_id,
             product_type=request.product_type,
@@ -185,6 +192,8 @@ class DiscountRepository:
             discount.value = request.value
         if request.scope is not None:
             discount.scope = request.scope
+        if request.campaign_id is not None:
+            discount.campaign_id = request.campaign_id
         if request.product_id is not None:
             discount.product_id = request.product_id
         if request.category_id is not None:
@@ -259,10 +268,14 @@ class DiscountRepository:
                     Discount.scope == DiscountScope.ALL,
                 )
             )
-        ).order_by(desc(Discount.priority), desc(Discount.created_at))
+        ).order_by(
+            desc(Discount.priority),
+            desc(Discount.created_at),
+            desc(Discount.id),  # детерминированный выбор при равных приоритетах/датах
+        ).limit(1)
 
         result = await self.session.execute(query)
-        discount = result.scalar_one_or_none()
+        discount = result.scalars().first()
 
         if discount:
             logger.info("Found active discount %s for product %s (priority: %s)", discount.id, product_id, discount.priority)

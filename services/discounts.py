@@ -4,13 +4,16 @@ from math import ceil
 from datetime import datetime
 
 from fastapi import HTTPException, status
+from sqlalchemy import select
 
 from repositories.discounts import DiscountRepository
+from core.models.campaigns import Campaign
 from core.models.discounts import DiscountType, DiscountScope
 from core.models.products import ProductType
 from core.schemas.discounts import (
     DiscountCreateRequest,
     DiscountUpdateRequest,
+    DiscountCampaignInfo,
     DiscountResponse,
     DiscountListResponse,
     DiscountDeleteResponse,
@@ -30,6 +33,7 @@ class DiscountService:
         include_inactive: bool = False,
         scope: Optional[DiscountScope] = None,
         discount_type: Optional[DiscountType] = None,
+        campaign_id: Optional[int] = None,
         product_id: Optional[int] = None,
         category_id: Optional[int] = None,
         product_type: Optional[ProductType] = None,
@@ -51,6 +55,7 @@ class DiscountService:
             include_inactive=include_inactive,
             scope=scope,
             discount_type=discount_type,
+            campaign_id=campaign_id,
             product_id=product_id,
             category_id=category_id,
             product_type=product_type,
@@ -66,6 +71,7 @@ class DiscountService:
                 discount_type=discount.discount_type,
                 value=discount.value,
                 scope=discount.scope,
+                campaign_id=discount.campaign_id,
                 product_id=discount.product_id,
                 category_id=discount.category_id,
                 product_type=discount.product_type,
@@ -75,6 +81,13 @@ class DiscountService:
                 priority=discount.priority,
                 created_at=discount.created_at,
                 updated_at=discount.updated_at,
+                campaign=DiscountCampaignInfo(
+                    id=discount.campaign.id,
+                    name=discount.campaign.name,
+                    slug=discount.campaign.slug,
+                    badge_text=discount.campaign.badge_text,
+                    landing_url=discount.campaign.landing_url,
+                ) if discount.campaign else None,
                 message=None,
             )
             for discount in discounts
@@ -112,6 +125,7 @@ class DiscountService:
             discount_type=discount.discount_type,
             value=discount.value,
             scope=discount.scope,
+            campaign_id=discount.campaign_id,
             product_id=discount.product_id,
             category_id=discount.category_id,
             product_type=discount.product_type,
@@ -121,6 +135,13 @@ class DiscountService:
             priority=discount.priority,
             created_at=discount.created_at,
             updated_at=discount.updated_at,
+            campaign=DiscountCampaignInfo(
+                id=discount.campaign.id,
+                name=discount.campaign.name,
+                slug=discount.campaign.slug,
+                badge_text=discount.campaign.badge_text,
+                landing_url=discount.campaign.landing_url,
+            ) if discount.campaign else None,
             message="Скидка успешно найдена",
         )
         logger.info("Service: discount %s retrieved", discount_id)
@@ -176,6 +197,16 @@ class DiscountService:
                 detail="Для скидки на тип продукта необходимо указать product_type",
             )
 
+        if request.campaign_id is not None:
+            campaign_result = await self.repository.session.execute(
+                select(Campaign.id).where(Campaign.id == request.campaign_id)
+            )
+            if campaign_result.scalar_one_or_none() is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Акция с id {request.campaign_id} не найдена",
+                )
+
         discount = await self.repository.create_discount(request)
 
         response = DiscountResponse(
@@ -184,6 +215,7 @@ class DiscountService:
             discount_type=discount.discount_type,
             value=discount.value,
             scope=discount.scope,
+            campaign_id=discount.campaign_id,
             product_id=discount.product_id,
             category_id=discount.category_id,
             product_type=discount.product_type,
@@ -193,6 +225,13 @@ class DiscountService:
             priority=discount.priority,
             created_at=discount.created_at,
             updated_at=discount.updated_at,
+            campaign=DiscountCampaignInfo(
+                id=discount.campaign.id,
+                name=discount.campaign.name,
+                slug=discount.campaign.slug,
+                badge_text=discount.campaign.badge_text,
+                landing_url=discount.campaign.landing_url,
+            ) if discount.campaign else None,
             message="Скидка успешно создана",
         )
         logger.info("Service: discount %s created", discount.id)
@@ -271,6 +310,16 @@ class DiscountService:
                 detail="Для скидки на тип продукта необходимо указать product_type",
             )
 
+        if request.campaign_id is not None:
+            campaign_result = await self.repository.session.execute(
+                select(Campaign.id).where(Campaign.id == request.campaign_id)
+            )
+            if campaign_result.scalar_one_or_none() is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Акция с id {request.campaign_id} не найдена",
+                )
+
         updated_discount = await self.repository.update_discount(discount_id, request)
         if not updated_discount:
             logger.error("Failed to update discount %s", discount_id)
@@ -285,6 +334,7 @@ class DiscountService:
             discount_type=updated_discount.discount_type,
             value=updated_discount.value,
             scope=updated_discount.scope,
+            campaign_id=updated_discount.campaign_id,
             product_id=updated_discount.product_id,
             category_id=updated_discount.category_id,
             product_type=updated_discount.product_type,
@@ -294,6 +344,13 @@ class DiscountService:
             priority=updated_discount.priority,
             created_at=updated_discount.created_at,
             updated_at=updated_discount.updated_at,
+            campaign=DiscountCampaignInfo(
+                id=updated_discount.campaign.id,
+                name=updated_discount.campaign.name,
+                slug=updated_discount.campaign.slug,
+                badge_text=updated_discount.campaign.badge_text,
+                landing_url=updated_discount.campaign.landing_url,
+            ) if updated_discount.campaign else None,
             message="Скидка успешно обновлена",
         )
         logger.info("Service: discount %s updated", discount_id)

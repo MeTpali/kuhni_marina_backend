@@ -32,6 +32,7 @@ class ProductRepository:
         is_hit: Optional[bool] = None,
         is_new: Optional[bool] = None,
         has_discount: Optional[bool] = None,
+        campaign_id: Optional[int] = None,
         product_type: Optional[ProductType] = None,
         search_query: Optional[str] = None,
     ) -> Tuple[List[Product], int]:
@@ -65,6 +66,7 @@ class ProductRepository:
             is_hit=is_hit,
             is_new=is_new,
             has_discount=has_discount,
+            campaign_id=campaign_id,
             product_type=product_type,
             search_query=search_query,
             apply_category_filter=True,
@@ -96,6 +98,7 @@ class ProductRepository:
         is_hit: Optional[bool] = None,
         is_new: Optional[bool] = None,
         has_discount: Optional[bool] = None,
+        campaign_id: Optional[int] = None,
         product_type: Optional[ProductType] = None,
         search_query: Optional[str] = None,
         apply_category_filter: bool = True,
@@ -112,28 +115,30 @@ class ProductRepository:
             query = query.where(Product.is_new.is_(is_new))
         if has_discount is not None:
             now = datetime.now()
-            discount_exists = exists().where(
-                and_(
-                    Discount.is_active.is_(True),
-                    Discount.start_date <= now,
-                    Discount.end_date >= now,
-                    or_(
-                        Discount.scope == DiscountScope.ALL,
-                        and_(
-                            Discount.scope == DiscountScope.PRODUCT,
-                            Discount.product_id == Product.id,
-                        ),
-                        and_(
-                            Discount.scope == DiscountScope.CATEGORY,
-                            Discount.category_id == Product.category_id,
-                        ),
-                        and_(
-                            Discount.scope == DiscountScope.TYPE,
-                            Discount.product_type == Product.type,
-                        ),
+            discount_conditions = [
+                Discount.is_active.is_(True),
+                Discount.start_date <= now,
+                Discount.end_date >= now,
+                or_(
+                    Discount.scope == DiscountScope.ALL,
+                    and_(
+                        Discount.scope == DiscountScope.PRODUCT,
+                        Discount.product_id == Product.id,
                     ),
-                )
-            )
+                    and_(
+                        Discount.scope == DiscountScope.CATEGORY,
+                        Discount.category_id == Product.category_id,
+                    ),
+                    and_(
+                        Discount.scope == DiscountScope.TYPE,
+                        Discount.product_type == Product.type,
+                    ),
+                ),
+            ]
+            if campaign_id is not None:
+                discount_conditions.append(Discount.campaign_id == campaign_id)
+
+            discount_exists = exists().where(and_(*discount_conditions))
             if has_discount:
                 query = query.where(discount_exists)
             else:
@@ -173,6 +178,7 @@ class ProductRepository:
         is_hit: Optional[bool] = None,
         is_new: Optional[bool] = None,
         has_discount: Optional[bool] = None,
+        campaign_id: Optional[int] = None,
         product_type: Optional[ProductType] = None,
         search_query: Optional[str] = None,
     ) -> List[Tuple[int, str, str, int]]:
@@ -194,6 +200,7 @@ class ProductRepository:
             is_hit=is_hit,
             is_new=is_new,
             has_discount=has_discount,
+            campaign_id=campaign_id,
             product_type=product_type,
             search_query=search_query,
             apply_category_filter=False,
@@ -212,6 +219,7 @@ class ProductRepository:
         is_hit: Optional[bool] = None,
         is_new: Optional[bool] = None,
         has_discount: Optional[bool] = None,
+        campaign_id: Optional[int] = None,
         product_type: Optional[ProductType] = None,
         search_query: Optional[str] = None,
     ) -> List[Tuple[int, str, Optional[str], str, int]]:
@@ -231,19 +239,21 @@ class ProductRepository:
             subq = subq.where(Product.is_new.is_(is_new))
         if has_discount is not None:
             now = datetime.now()
-            discount_exists = exists().where(
-                and_(
-                    Discount.is_active.is_(True),
-                    Discount.start_date <= now,
-                    Discount.end_date >= now,
-                    or_(
-                        Discount.scope == DiscountScope.ALL,
-                        and_(Discount.scope == DiscountScope.PRODUCT, Discount.product_id == Product.id),
-                        and_(Discount.scope == DiscountScope.CATEGORY, Discount.category_id == Product.category_id),
-                        and_(Discount.scope == DiscountScope.TYPE, Discount.product_type == Product.type),
-                    ),
-                )
-            )
+            discount_conditions = [
+                Discount.is_active.is_(True),
+                Discount.start_date <= now,
+                Discount.end_date >= now,
+                or_(
+                    Discount.scope == DiscountScope.ALL,
+                    and_(Discount.scope == DiscountScope.PRODUCT, Discount.product_id == Product.id),
+                    and_(Discount.scope == DiscountScope.CATEGORY, Discount.category_id == Product.category_id),
+                    and_(Discount.scope == DiscountScope.TYPE, Discount.product_type == Product.type),
+                ),
+            ]
+            if campaign_id is not None:
+                discount_conditions.append(Discount.campaign_id == campaign_id)
+
+            discount_exists = exists().where(and_(*discount_conditions))
             subq = subq.where(discount_exists if has_discount else ~discount_exists)
         if product_type is not None:
             type_val = product_type.value if hasattr(product_type, "value") else product_type

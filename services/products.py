@@ -165,6 +165,7 @@ class ProductService:
         is_hit: Optional[bool] = None,
         is_new: Optional[bool] = None,
         has_discount: Optional[bool] = None,
+        campaign_id: Optional[int] = None,
         product_type: Optional[ProductType] = None,
         search_query: Optional[str] = None,
     ) -> ProductCatalogResponse:
@@ -191,6 +192,7 @@ class ProductService:
             is_hit=is_hit,
             is_new=is_new,
             has_discount=has_discount,
+            campaign_id=campaign_id,
             product_type=product_type,
             search_query=search_query,
         )
@@ -200,6 +202,7 @@ class ProductService:
             is_hit=is_hit,
             is_new=is_new,
             has_discount=has_discount,
+            campaign_id=campaign_id,
             product_type=product_type,
             search_query=search_query,
         )
@@ -208,6 +211,7 @@ class ProductService:
             is_hit=is_hit,
             is_new=is_new,
             has_discount=has_discount,
+            campaign_id=campaign_id,
             product_type=product_type,
             search_query=search_query,
         )

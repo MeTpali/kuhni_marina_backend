@@ -4,6 +4,7 @@
 from admin.views.attributes import AttributeAdmin
 from admin.views.banners import BannerAdmin
 from admin.views.categories import CategoryAdmin
+from admin.views.campaigns import CampaignAdmin
 from admin.views.discounts import DiscountAdmin
 from admin.views.measure_requests import MeasureRequestAdmin
 from admin.views.product_attributes import ProductAttributeAdmin
@@ -23,6 +24,7 @@ __all__ = [
     "BulkProductImagesAdmin",
     "BulkProjectImagesAdmin",
     "CategoryAdmin",
+    "CampaignAdmin",
     "DiscountAdmin",
     "MeasureRequestAdmin",
     "ProductAdmin",

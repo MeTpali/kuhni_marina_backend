@@ -2,8 +2,6 @@ from typing import List, Optional
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import Field
-
 from core.models.discounts import DiscountType, DiscountScope
 from core.models.products import ProductType
 from .base import BaseSchema
@@ -14,6 +12,7 @@ class DiscountBase(BaseSchema):
     discount_type: DiscountType
     value: Decimal
     scope: DiscountScope
+    campaign_id: Optional[int] = None
     product_id: Optional[int] = None
     category_id: Optional[int] = None
     product_type: Optional[ProductType] = None
@@ -31,6 +30,7 @@ class DiscountUpdateRequest(BaseSchema):
     discount_type: Optional[DiscountType] = None
     value: Optional[Decimal] = None
     scope: Optional[DiscountScope] = None
+    campaign_id: Optional[int] = None
     product_id: Optional[int] = None
     category_id: Optional[int] = None
     product_type: Optional[ProductType] = None
@@ -40,11 +40,20 @@ class DiscountUpdateRequest(BaseSchema):
     priority: Optional[int] = None
 
 
+class DiscountCampaignInfo(BaseSchema):
+    id: int
+    name: str
+    slug: str
+    badge_text: Optional[str] = None
+    landing_url: Optional[str] = None
+
+
 class DiscountResponse(DiscountBase):
     id: int
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
+    campaign: Optional[DiscountCampaignInfo] = None
     message: Optional[str] = None
 
 

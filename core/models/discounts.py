@@ -44,6 +44,7 @@ class Discount(Base):
     scope = Column(Enum(DiscountScope, name="discount_scope", create_type=False, native_enum=True), nullable=False)
     
     # Привязки (nullable в зависимости от scope)
+    campaign_id = Column(Integer, ForeignKey("campaigns.id"), nullable=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     product_type = Column(Enum(ProductType, name="category_type", create_type=False, native_enum=True), nullable=True)
@@ -62,6 +63,7 @@ class Discount(Base):
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
 
     # Связи
+    campaign = relationship("Campaign", back_populates="discounts")
     product = relationship("Product", back_populates="discounts")
     category = relationship("Category", back_populates="discounts")
 

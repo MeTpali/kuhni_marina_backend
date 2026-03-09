@@ -118,3 +118,49 @@ def upload_project_image(
     url = f"{YC_ENDPOINT}/{settings.YC_STORAGE}/{key}"
     logger.info("Uploaded project image to %s", url)
     return url
+
+
+def _upload_image_to_folder(
+    folder: str,
+    file_bytes: bytes,
+    content_type: Optional[str] = None,
+    original_filename: Optional[str] = None,
+) -> str:
+    """Загружает изображение в бакет в папку folder/{uuid}.{ext}. Возвращает публичный URL."""
+    if len(file_bytes) > MAX_FILE_SIZE:
+        raise ValueError(f"Размер файла не должен превышать {MAX_FILE_SIZE // (1024*1024)} МБ")
+    if content_type and content_type.split(";")[0].strip().lower() not in ALLOWED_IMAGE_TYPES:
+        raise ValueError(f"Допустимые типы: {', '.join(ALLOWED_IMAGE_TYPES)}")
+
+    ext = _extension_from_filename(original_filename) or _extension_from_content_type(content_type)
+    safe_ext = ext if ext in ("jpg", "jpeg", "png", "gif", "webp") else "jpg"
+    key = f"{folder}/{uuid.uuid4().hex}.{safe_ext}"
+
+    client = _get_client()
+    client.put_object(
+        Bucket=settings.YC_STORAGE,
+        Key=key,
+        Body=file_bytes,
+        ContentType=content_type or "image/jpeg",
+    )
+    url = f"{YC_ENDPOINT}/{settings.YC_STORAGE}/{key}"
+    logger.info("Uploaded image to %s", url)
+    return url
+
+
+def upload_banner_image(
+    file_bytes: bytes,
+    content_type: Optional[str] = None,
+    original_filename: Optional[str] = None,
+) -> str:
+    """Загружает изображение баннера в бакет: banners/{uuid}.{ext}. Возвращает публичный URL."""
+    return _upload_image_to_folder("banners", file_bytes, content_type, original_filename)
+
+
+def upload_campaign_image(
+    file_bytes: bytes,
+    content_type: Optional[str] = None,
+    original_filename: Optional[str] = None,
+) -> str:
+    """Загружает изображение акции в бакет: campaigns/{uuid}.{ext}. Возвращает публичный URL."""
+    return _upload_image_to_folder("campaigns", file_bytes, content_type, original_filename)

@@ -84,9 +84,17 @@ from .products import (
 from .discounts import (
     DiscountCreateRequest,
     DiscountUpdateRequest,
+    DiscountCampaignInfo,
     DiscountResponse,
     DiscountListResponse,
     DiscountDeleteResponse,
+)
+from .campaigns import (
+    CampaignCreateRequest,
+    CampaignUpdateRequest,
+    CampaignResponse,
+    CampaignListResponse,
+    CampaignDeleteResponse,
 )
 
 __all__ = [
@@ -121,5 +129,7 @@ __all__ = [
     "ProductAttributeResponse", "ProductImageResponse",
     "ProductSuggestionItemResponse", "ProductSearchSuggestionsResponse",
     "DiscountCreateRequest", "DiscountUpdateRequest",
-    "DiscountResponse", "DiscountListResponse", "DiscountDeleteResponse",
+    "DiscountCampaignInfo", "DiscountResponse", "DiscountListResponse", "DiscountDeleteResponse",
+    "CampaignCreateRequest", "CampaignUpdateRequest",
+    "CampaignResponse", "CampaignListResponse", "CampaignDeleteResponse",
 ]

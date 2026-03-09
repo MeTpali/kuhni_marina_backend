@@ -15,6 +15,7 @@ from repositories.project_images import ProjectImageRepository
 from repositories.projects import ProjectRepository
 from repositories.reviews import ReviewRepository
 from repositories.discounts import DiscountRepository
+from repositories.campaigns import CampaignRepository
 
 from services.attributes import AttributeService
 from services.categories import CategoryService
@@ -28,6 +29,7 @@ from services.project_images import ProjectImageService
 from services.projects import ProjectService
 from services.reviews import ReviewService
 from services.discounts import DiscountService
+from services.campaigns import CampaignService
 
 async def get_attribute_repository(
     db: AsyncSession = Depends(get_async_session),
@@ -173,3 +175,15 @@ async def get_discount_service(
     discount_repository: DiscountRepository = Depends(get_discount_repository),
 ) -> DiscountService:
     return DiscountService(discount_repository)
+
+
+async def get_campaign_repository(
+    db: AsyncSession = Depends(get_async_session),
+) -> CampaignRepository:
+    return CampaignRepository(db)
+
+
+async def get_campaign_service(
+    campaign_repository: CampaignRepository = Depends(get_campaign_repository),
+) -> CampaignService:
+    return CampaignService(campaign_repository)

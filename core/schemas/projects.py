@@ -37,6 +37,10 @@ class ProjectDetailResponse(ProjectBase):
 
 class ProjectListResponse(BaseSchema):
     items: List[ProjectResponse]
+    total: Optional[int] = None
+    page: Optional[int] = None
+    page_size: Optional[int] = None
+    total_pages: Optional[int] = None
     message: Optional[str] = None
 
 
