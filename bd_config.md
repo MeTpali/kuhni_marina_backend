@@ -107,7 +107,7 @@
 | rating      | int                              | Оценка (1–5)           |
 | text        | text                             | Текст отзыва           |
 | created_at  | timestamp                        | Дата публикации        |
-| is_approved | bool                             | Одобрен ли модератором |
+| status      | enum(`PENDING`,`APPROVED`,`DECLINED`) | Статус модерации отзыва (`PENDING` — ожидает проверки, `APPROVED` — одобрен, `DECLINED` — отклонен) |
 
 ---
 
@@ -171,7 +171,7 @@
 | title     | text            | Заголовок         |
 | image_url | text            | Изображение       |
 | link_url  | text (nullable) | Ссылка            |
-| position  | int             | Порядок вывода    |
+| priority  | int             | Приоритет (чем выше — тем выше в списке) |
 | is_active | bool            | Активен ли баннер |
 
 ---

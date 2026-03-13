@@ -1,6 +1,7 @@
 from typing import List, Optional
 from datetime import datetime
 
+from core.models.reviews import ReviewStatus
 from .base import BaseSchema
 
 
@@ -10,7 +11,7 @@ class ReviewBase(BaseSchema):
     text: str
     product_id: Optional[int] = None
     user_id: Optional[int] = None
-    is_approved: Optional[bool] = False
+    status: Optional[ReviewStatus] = ReviewStatus.PENDING
 
 
 class ReviewCreateRequest(ReviewBase):
@@ -23,12 +24,13 @@ class ReviewUpdateRequest(BaseSchema):
     text: Optional[str] = None
     product_id: Optional[int] = None
     user_id: Optional[int] = None
+    status: Optional[ReviewStatus] = None
 
 
 class ReviewResponse(ReviewBase):
     id: int
     created_at: datetime
-    is_approved: bool
+    status: ReviewStatus
     message: Optional[str] = None
 
 

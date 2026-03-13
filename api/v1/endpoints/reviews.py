@@ -96,7 +96,7 @@ async def create_review(
     Создать новый отзыв:
     - Проверяет корректность данных
     - Оценка должна быть от 1 до 5
-    - По умолчанию отзыв не одобрен (is_approved=False)
+    - По умолчанию отзыв имеет статус pending (ожидает модерации)
     - Создает и возвращает созданный отзыв
     """
     return await review_service.create_review(request)
@@ -143,7 +143,7 @@ async def approve_review(
 ):
     """
     Одобрить отзыв:
-    - Устанавливает is_approved=True для отзыва
+    - Устанавливает статус approved для отзыва
     - Используется для модерации отзывов
     """
     return await review_service.approve_review(review_id)

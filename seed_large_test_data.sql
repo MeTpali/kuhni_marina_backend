@@ -19,17 +19,6 @@ TRUNCATE TABLE
     users
 RESTART IDENTITY CASCADE;
 
--- Если таблицы campaigns/discounts есть в базе, очищаем их.
-DO $$
-BEGIN
-    IF to_regclass('public.campaigns') IS NOT NULL THEN
-        EXECUTE 'TRUNCATE TABLE campaigns RESTART IDENTITY CASCADE';
-    END IF;
-    IF to_regclass('public.discounts') IS NOT NULL THEN
-        EXECUTE 'TRUNCATE TABLE discounts RESTART IDENTITY CASCADE';
-    END IF;
-END $$;
-
 -- ------------------------------------------------------------
 -- USERS
 -- ------------------------------------------------------------
@@ -204,7 +193,7 @@ CROSS JOIN LATERAL (
 -- ------------------------------------------------------------
 -- REVIEWS
 -- ------------------------------------------------------------
-INSERT INTO reviews (product_id, user_id, author_name, rating, text, created_at, is_approved)
+INSERT INTO reviews (product_id, user_id, author_name, rating, text, created_at, status)
 SELECT
     rp.product_id,
     u.id,
@@ -212,7 +201,11 @@ SELECT
     1 + floor(random() * 5)::int,
     'Тестовый отзыв #' || gs.n || ' для товара #' || rp.product_id || '. Качество и сервис проверяем в нагрузочном сценарии.',
     NOW() - (random() * interval '540 days'),
-    (random() < 0.88)
+    CASE
+        WHEN random() < 0.75 THEN 'APPROVED'::review_status
+        WHEN random() < 0.90 THEN 'PENDING'::review_status
+        ELSE 'DECLINED'::review_status
+    END
 FROM (
     SELECT
         p.id AS product_id,
@@ -325,7 +318,7 @@ FROM generate_series(1, 7000) AS g;
 -- ------------------------------------------------------------
 -- BANNERS
 -- ------------------------------------------------------------
-INSERT INTO banners (title, image_url, link_url, position, is_active)
+INSERT INTO banners (title, image_url, link_url, priority, is_active)
 SELECT
     'Баннер #' || g,
     (
@@ -347,11 +340,9 @@ SELECT
 FROM generate_series(1, 60) AS g;
 
 -- ------------------------------------------------------------
--- CAMPAIGNS (если таблица существует)
+-- CAMPAIGNS
 -- ------------------------------------------------------------
-DO $$
-BEGIN
-    IF to_regclass('public.campaigns') IS NOT NULL THEN
+
         INSERT INTO campaigns (
             name,
             slug,
@@ -377,18 +368,12 @@ BEGIN
             ('Черная пятница', 'black-friday', 'Краткосрочная распродажа с максимальной выгодой.', 'https://vsthemes.org/uploads/posts/2021-09/1632783838_1141570-2.webp', '/campaigns/black-friday', '-30%', NOW() + interval '15 days', NOW() + interval '18 days', TRUE, 90, NOW(), NOW()),
             ('Архивная акция', 'archive-sale', 'Истекшая акция для тестов.', 'https://abrakadabra.fun/uploads/posts/2021-12/1639950507_1-abrakadabra-fun-p-oboi-magicheskaya-bitva-na-pk-1.jpg', '/campaigns/archive-sale', 'ARCHIVE', NOW() - interval '90 days', NOW() - interval '30 days', FALSE, 5, NOW(), NOW()),
             ('Зимний разогрев', 'winter-warmup', 'Подготовка к зимнему сезону: специальные условия.', 'https://abrakadabra.fun/uploads/posts/2022-03/1646387750_5-abrakadabra-fun-p-magicheskaya-bitva-zastavka-na-telefon-8.png', '/campaigns/winter-warmup', '-8%', NOW() + interval '40 days', NOW() + interval '90 days', TRUE, 22, NOW(), NOW());
-    END IF;
-END $$;
+
 
 -- ------------------------------------------------------------
--- DISCOUNTS (если таблица существует)
+-- DISCOUNTS
 -- ------------------------------------------------------------
-DO $$
-DECLARE
-    v_has_discounts boolean := (to_regclass('public.discounts') IS NOT NULL);
-    v_has_campaigns boolean := (to_regclass('public.campaigns') IS NOT NULL);
-BEGIN
-    IF v_has_discounts THEN
+
         INSERT INTO discounts (
             name,
             discount_type,
@@ -436,7 +421,5 @@ BEGIN
             FROM products
             WHERE id % 2 = 0
         ) p;
-    END IF;
-END $$;
 
 COMMIT;

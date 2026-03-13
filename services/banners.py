@@ -30,7 +30,7 @@ class BannerService:
                 title=banner.title,
                 image_url=banner.image_url,
                 link_url=banner.link_url,
-                position=banner.position,
+                priority=banner.priority,
                 is_active=banner.is_active,
                 message=None,
             )
@@ -69,7 +69,7 @@ class BannerService:
             title=banner.title,
             image_url=banner.image_url,
             link_url=banner.link_url,
-            position=banner.position,
+            priority=banner.priority,
             is_active=banner.is_active,
             message="Баннер успешно найден",
         )
@@ -106,7 +106,7 @@ class BannerService:
             title=banner.title,
             image_url=banner.image_url,
             link_url=banner.link_url,
-            position=banner.position,
+            priority=banner.priority,
             is_active=banner.is_active,
             message="Баннер успешно создан",
         )
@@ -150,7 +150,7 @@ class BannerService:
             title=banner.title,
             image_url=banner.image_url,
             link_url=banner.link_url,
-            position=banner.position,
+            priority=banner.priority,
             is_active=banner.is_active,
             message="Баннер успешно обновлен",
         )

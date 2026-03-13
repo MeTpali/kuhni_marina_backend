@@ -19,8 +19,8 @@ class Banner(Base):
     image_url = Column(String, nullable=False)
     # Ссылка
     link_url = Column(String, nullable=True)
-    # Порядок вывода
-    position = Column(Integer, default=0, nullable=False)
+    # Приоритет (чем выше число — тем выше в списке)
+    priority = Column(Integer, default=0, nullable=False)
     # Активен ли баннер
     is_active = Column(Boolean, default=True, nullable=False)
 

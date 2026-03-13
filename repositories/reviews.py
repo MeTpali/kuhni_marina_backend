@@ -4,7 +4,7 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.models.reviews import Review
+from core.models.reviews import Review, ReviewStatus
 from core.schemas.reviews import ReviewCreateRequest, ReviewUpdateRequest
 
 logger = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ class ReviewRepository:
             author_name=request.author_name,
             rating=request.rating,
             text=request.text,
-            is_approved=request.is_approved if request.is_approved is not None else False,
+            status=request.status or ReviewStatus.PENDING,
         )
 
         self.session.add(review)
@@ -92,6 +92,8 @@ class ReviewRepository:
             review.product_id = request.product_id
         if request.user_id is not None:
             review.user_id = request.user_id
+        if request.status is not None:
+            review.status = request.status
 
         await self.session.commit()
         await self.session.refresh(review)
@@ -109,7 +111,7 @@ class ReviewRepository:
             logger.warning("Review with id %s not found for approval", review_id)
             return None
 
-        review.is_approved = True
+        review.status = ReviewStatus.APPROVED
         await self.session.commit()
         await self.session.refresh(review)
 

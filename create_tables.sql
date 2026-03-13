@@ -12,6 +12,9 @@ CREATE TYPE category_type AS ENUM ('KITCHEN', 'FURNITURE');
 -- Статус заявки на замер
 CREATE TYPE measure_request_status AS ENUM ('NEW', 'IN_PROGRESS', 'DONE', 'CANCELLED');
 
+-- Статус отзыва
+CREATE TYPE review_status AS ENUM ('PENDING', 'APPROVED', 'DECLINED');
+
 -- 2. Создание таблицы users
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
@@ -97,12 +100,12 @@ CREATE TABLE reviews (
     rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
     text TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    is_approved BOOLEAN NOT NULL DEFAULT FALSE
+    status review_status NOT NULL DEFAULT 'PENDING'
 );
 
 CREATE INDEX idx_reviews_product_id ON reviews(product_id);
 CREATE INDEX idx_reviews_user_id ON reviews(user_id);
-CREATE INDEX idx_reviews_is_approved ON reviews(is_approved);
+CREATE INDEX idx_reviews_status ON reviews(status);
 
 -- 9. Создание таблицы projects
 CREATE TABLE projects (
@@ -154,11 +157,11 @@ CREATE TABLE banners (
     title TEXT NOT NULL,
     image_url TEXT NOT NULL,
     link_url TEXT,
-    position INTEGER NOT NULL DEFAULT 0,
+    priority INTEGER NOT NULL DEFAULT 0,
     is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-CREATE INDEX idx_banners_position ON banners(position);
+CREATE INDEX idx_banners_priority ON banners(priority);
 CREATE INDEX idx_banners_is_active ON banners(is_active);
 
 -- 14. Создание таблицы campaigns

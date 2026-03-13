@@ -33,7 +33,7 @@ class ReviewService:
                 rating=review.rating,
                 text=review.text,
                 created_at=review.created_at,
-                is_approved=review.is_approved,
+                status=review.status,
                 message=None,
             )
             for review in reviews
@@ -61,7 +61,7 @@ class ReviewService:
                 rating=review.rating,
                 text=review.text,
                 created_at=review.created_at,
-                is_approved=review.is_approved,
+                status=review.status,
                 message=None,
             )
             for review in reviews
@@ -95,7 +95,7 @@ class ReviewService:
             rating=review.rating,
             text=review.text,
             created_at=review.created_at,
-            is_approved=review.is_approved,
+            status=review.status,
             message="Отзыв успешно найден",
         )
         logger.info("Review with id %s successfully retrieved", review_id)
@@ -141,7 +141,7 @@ class ReviewService:
             rating=review.rating,
             text=review.text,
             created_at=review.created_at,
-            is_approved=review.is_approved,
+            status=review.status,
             message="Отзыв успешно создан",
         )
         logger.info("Review created with id %s via service", review.id)
@@ -194,7 +194,7 @@ class ReviewService:
             rating=review.rating,
             text=review.text,
             created_at=review.created_at,
-            is_approved=review.is_approved,
+            status=review.status,
             message="Отзыв успешно обновлен",
         )
         logger.info("Review with id %s successfully updated via service", review_id)
@@ -221,7 +221,7 @@ class ReviewService:
             rating=review.rating,
             text=review.text,
             created_at=review.created_at,
-            is_approved=review.is_approved,
+            status=review.status,
             message="Отзыв успешно одобрен",
         )
         logger.info("Review with id %s successfully approved via service", review_id)

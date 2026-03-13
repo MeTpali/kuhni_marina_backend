@@ -19,7 +19,7 @@ class BannerRepository:
         Получить список всех активных баннеров.
         """
         logger.info("Fetching all active banners")
-        query = select(Banner).where(Banner.is_active == True).order_by(Banner.position, Banner.id)
+        query = select(Banner).where(Banner.is_active == True).order_by(Banner.priority.desc(), Banner.id)
         result = await self.session.execute(query)
         banners = result.scalars().all()
         logger.info("Retrieved %d active banners", len(banners))
@@ -47,7 +47,7 @@ class BannerRepository:
             title=request.title,
             image_url=request.image_url,
             link_url=request.link_url,
-            position=request.position,
+            priority=request.priority,
             is_active=request.is_active if request.is_active is not None else True,
         )
 
@@ -73,7 +73,7 @@ class BannerRepository:
         banner.title = request.title
         banner.image_url = request.image_url
         banner.link_url = request.link_url
-        banner.position = request.position
+        banner.priority = request.priority
         banner.is_active = request.is_active if request.is_active is not None else banner.is_active
 
         await self.session.commit()

@@ -1,15 +1,14 @@
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    ForeignKey,
-    DateTime,
-    Boolean,
-    Text,
-)
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Enum
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
+import enum
 from .base import Base
+
+
+class ReviewStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    DECLINED = "DECLINED"
 
 
 # 7. Модель Review
@@ -30,8 +29,12 @@ class Review(Base):
     text = Column(Text, nullable=False)
     # Дата публикации
     created_at = Column(DateTime, default=datetime.now, nullable=False)
-    # Одобрен ли модератором
-    is_approved = Column(Boolean, default=False, nullable=False)
+    # Статус модерации
+    status = Column(
+        Enum(ReviewStatus, name="review_status", create_type=False, native_enum=True),
+        default=ReviewStatus.PENDING,
+        nullable=False,
+    )
 
     # Связи
     product = relationship("Product", back_populates="reviews")

@@ -7,7 +7,7 @@ class BannerBase(BaseSchema):
     title: str
     image_url: str
     link_url: str | None = None
-    position: int = 0
+    priority: int = 0
     is_active: bool | None = True
 
 
