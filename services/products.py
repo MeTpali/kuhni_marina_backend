@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 from repositories.products import ProductRepository
 from repositories.categories import CategoryRepository
 from repositories.discounts import DiscountRepository
+from repositories.reviews import ReviewRepository
 from core.models.products import ProductType
 from core.models.categories import CategoryType
 from core.models.discounts import DiscountType
@@ -243,16 +244,18 @@ class ProductService:
 
         facets = CatalogFacets(categories=categories_facet, attributes=attributes_facet)
 
+        product_ids = [p.id for p in products]
+        review_repo = ReviewRepository(self.repository.session)
+        review_stats = await review_repo.get_approved_review_stats_by_product_ids(product_ids)
+
         items = []
         for product in products:
-            # Находим главное изображение
-            main_image = None
-            for img in product.images:
-                if img.is_main:
-                    main_image = img.image_url
-                    break
-            if not main_image and product.images:
-                main_image = product.images[0].image_url
+            # Список URL изображений: первым — главное (is_main), остальные по порядку
+            sorted_images = sorted(
+                product.images,
+                key=lambda img: (0 if img.is_main else 1),
+            )
+            images = [img.image_url for img in sorted_images]
 
             # Вычисляем скидку
             discount = await self._get_product_discount(
@@ -262,6 +265,7 @@ class ProductService:
                 price=product.price,
             )
 
+            rating, reviews_count = review_stats.get(product.id, (0.0, 0))
             items.append(
                 ProductListItemResponse(
                     id=product.id,
@@ -273,9 +277,11 @@ class ProductService:
                     is_new=product.is_new,
                     is_hit=product.is_hit,
                     type=ProductType(product.type) if isinstance(product.type, str) else product.type,
-                    main_image=main_image,
+                    images=images,
                     is_active=product.is_active,
                     discount=discount,
+                    rating=rating,
+                    reviews_count=reviews_count,
                 )
             )
 
@@ -299,6 +305,7 @@ class ProductService:
         page_size: int = 20,
         category_ids: List[int] = None,
         attribute_filters: List[dict] = None,
+        product_type: Optional[ProductType] = None,
     ) -> ProductCatalogResponse:
         """Получить каталог продуктов-хитов с пагинацией."""
         return await self.get_product_catalog(
@@ -307,6 +314,7 @@ class ProductService:
             category_ids=category_ids,
             attribute_filters=attribute_filters,
             is_hit=True,
+            product_type=product_type,
         )
 
     async def get_catalog_new(
@@ -315,6 +323,7 @@ class ProductService:
         page_size: int = 20,
         category_ids: List[int] = None,
         attribute_filters: List[dict] = None,
+        product_type: Optional[ProductType] = None,
     ) -> ProductCatalogResponse:
         """Получить каталог новинок с пагинацией."""
         return await self.get_product_catalog(
@@ -323,6 +332,7 @@ class ProductService:
             category_ids=category_ids,
             attribute_filters=attribute_filters,
             is_new=True,
+            product_type=product_type,
         )
 
     async def get_catalog_discounts(
@@ -331,6 +341,7 @@ class ProductService:
         page_size: int = 20,
         category_ids: List[int] = None,
         attribute_filters: List[dict] = None,
+        product_type: Optional[ProductType] = None,
     ) -> ProductCatalogResponse:
         """Получить каталог продуктов со скидкой с пагинацией."""
         return await self.get_product_catalog(
@@ -339,6 +350,7 @@ class ProductService:
             category_ids=category_ids,
             attribute_filters=attribute_filters,
             has_discount=True,
+            product_type=product_type,
         )
 
     async def get_search_suggestions(

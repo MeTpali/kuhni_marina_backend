@@ -1,7 +1,7 @@
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.models.reviews import Review, ReviewStatus
@@ -24,6 +24,36 @@ class ReviewRepository:
         reviews = result.scalars().all()
         logger.info("Retrieved %d reviews", len(reviews))
         return reviews
+
+    async def get_approved_review_stats_by_product_ids(
+        self, product_ids: List[int]
+    ) -> Dict[int, Tuple[float, int]]:
+        """
+        Для каждого product_id возвращает (средний рейтинг, количество) по одобренным отзывам.
+        """
+        if not product_ids:
+            return {}
+        query = (
+            select(
+                Review.product_id,
+                func.avg(Review.rating).label("avg_rating"),
+                func.count(Review.id).label("count"),
+            )
+            .where(
+                Review.status == ReviewStatus.APPROVED,
+                Review.product_id.in_(product_ids),
+            )
+            .group_by(Review.product_id)
+        )
+        result = await self.session.execute(query)
+        rows = result.all()
+        return {
+            int(row.product_id): (
+                round(float(row.avg_rating), 2) if row.avg_rating is not None else 0.0,
+                int(row.count) if row.count is not None else 0,
+            )
+            for row in rows
+        }
 
     async def get_reviews_by_product_id(self, product_id: int) -> List[Review]:
         """

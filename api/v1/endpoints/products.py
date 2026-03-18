@@ -118,6 +118,7 @@ async def get_product_hits(
     attribute_filters: Optional[str] = Query(
         None, description='Фильтр по атрибутам в формате JSON: [{"attribute_id": 1, "value": "значение"}]'
     ),
+    type: Optional[ProductType] = Query(None, description="Фильтр по типу продукта (KITCHEN, FURNITURE)"),
     product_service: ProductService = Depends(get_product_service),
 ):
     """Получить каталог продуктов-хитов с пагинацией."""
@@ -133,6 +134,7 @@ async def get_product_hits(
         page_size=page_size,
         category_ids=category_ids,
         attribute_filters=attr_filters,
+        product_type=type,
     )
 
 
@@ -149,6 +151,7 @@ async def get_product_new(
     attribute_filters: Optional[str] = Query(
         None, description='Фильтр по атрибутам в формате JSON: [{"attribute_id": 1, "value": "значение"}]'
     ),
+    type: Optional[ProductType] = Query(None, description="Фильтр по типу продукта (KITCHEN, FURNITURE)"),
     product_service: ProductService = Depends(get_product_service),
 ):
     """Получить каталог новинок с пагинацией."""
@@ -164,6 +167,7 @@ async def get_product_new(
         page_size=page_size,
         category_ids=category_ids,
         attribute_filters=attr_filters,
+        product_type=type,
     )
 
 
@@ -180,6 +184,7 @@ async def get_product_discounts(
     attribute_filters: Optional[str] = Query(
         None, description='Фильтр по атрибутам в формате JSON: [{"attribute_id": 1, "value": "значение"}]'
     ),
+    type: Optional[ProductType] = Query(None, description="Фильтр по типу продукта (KITCHEN, FURNITURE)"),
     product_service: ProductService = Depends(get_product_service),
 ):
     """Получить каталог продуктов со скидкой с пагинацией."""
@@ -195,6 +200,7 @@ async def get_product_discounts(
         page_size=page_size,
         category_ids=category_ids,
         attribute_filters=attr_filters,
+        product_type=type,
     )
 
 

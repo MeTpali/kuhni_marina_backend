@@ -1,11 +1,20 @@
 from typing import List, Optional
 from decimal import Decimal
 
-from pydantic import Field
+from pydantic import Field, field_serializer
 
 from core.models.products import ProductType
 from core.schemas.categories import CategoryResponse
 from .base import BaseSchema
+
+
+def _decimal_to_json_string(value: Optional[Decimal]) -> Optional[str]:
+    """Сериализация Decimal в строку: без дробной части, если она нулевая (например "100" вместо "100.0")."""
+    if value is None:
+        return None
+    if value % 1 == 0:
+        return str(int(value))
+    return str(value)
 
 
 # Вложенные схемы для атрибутов и изображений
@@ -28,6 +37,10 @@ class ProductDiscountInfo(BaseSchema):
     discount_amount: Optional[Decimal] = None   # Величина скидки в деньгах
     final_price: Optional[Decimal] = None       # Итоговая цена с учетом скидки
 
+    @field_serializer("discount_percent", "discount_amount", "final_price")
+    def _serialize_decimal_fields(self, value: Optional[Decimal]):
+        return _decimal_to_json_string(value)
+
 
 # Базовые схемы продукта
 class ProductBase(BaseSchema):
@@ -39,6 +52,10 @@ class ProductBase(BaseSchema):
     is_new: bool = False
     is_hit: bool = False
     type: ProductType
+
+    @field_serializer("price")
+    def _serialize_price(self, value: Optional[Decimal]):
+        return _decimal_to_json_string(value)
 
 
 class ProductCreateRequest(ProductBase):
@@ -81,9 +98,15 @@ class ProductListItemResponse(BaseSchema):
     is_new: bool = False
     is_hit: bool = False
     type: ProductType
-    main_image: Optional[str] = None
+    images: List[str] = Field(default_factory=list)  # URL изображений, первым — главное
     is_active: bool = True
     discount: Optional[ProductDiscountInfo] = None
+    rating: float = 0.0  # средний рейтинг по одобренным отзывам
+    reviews_count: int = 0  # количество одобренных отзывов
+
+    @field_serializer("price")
+    def _serialize_price(self, value: Optional[Decimal]):
+        return _decimal_to_json_string(value)
 
 
 # Фасеты для фильтров каталога
@@ -163,6 +186,10 @@ class ProductSuggestionItemResponse(BaseSchema):
     description: Optional[str] = None  # не более 150 символов + "..."
     price: Optional[Decimal] = None
     discount: Optional[ProductDiscountInfo] = None
+
+    @field_serializer("price")
+    def _serialize_price(self, value: Optional[Decimal]):
+        return _decimal_to_json_string(value)
 
 
 class ProductSearchSuggestionsResponse(BaseSchema):
