@@ -20,6 +20,8 @@ __all__ = (
     "Discount",
     "DiscountType",
     "DiscountScope",
+    "GuestSession",
+    "GuestSessionFavorite",
     "DatabaseHelper",
     "db_helper",
 )
@@ -39,4 +41,6 @@ from .measure_requests import MeasureRequest, MeasureRequestStatus
 from .banners import Banner
 from .campaigns import Campaign
 from .discounts import Discount, DiscountType, DiscountScope
+from .guest_sessions import GuestSession
+from .guest_session_favorites import GuestSessionFavorite
 from .db_helper import DatabaseHelper, db_helper

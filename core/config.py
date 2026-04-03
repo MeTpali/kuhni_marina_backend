@@ -32,6 +32,15 @@ class Settings(BaseSettings):
     YC_STORAGE: str # Название бакета в Yandex Cloud
     YC_UPLOADER_ID: str # Идентификатор ключа доступа
     YC_UPLOADER_KEY: str # Секретный ключ доступа
+
+    # Гостевая сессия (cookie sessionid). TTL в днях: истечение cookie, middleware и очистка в БД.
+    # Задаётся в .env: GUEST_SESSION_TTL_DAYS=30
+    GUEST_SESSION_COOKIE_NAME: str = "sessionid"
+    GUEST_SESSION_TTL_DAYS: int = 30
+    GUEST_SESSION_COOKIE_SECURE: bool = False
+    GUEST_SESSION_COOKIE_SAMESITE: str = "lax"
+    # Батч DELETE при очистке (python -m jobs.cleanup_guest_sessions). В .env: GUEST_SESSION_CLEANUP_BATCH_SIZE=500
+    GUEST_SESSION_CLEANUP_BATCH_SIZE: int = 500
     
     class Config:
         env_file = ".env"

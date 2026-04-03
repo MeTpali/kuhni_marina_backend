@@ -11,6 +11,7 @@ class CategoryBase(BaseSchema):
     slug: str
     parent_id: Optional[int] = None
     type: CategoryType
+    image_url: Optional[str] = None
 
 
 class CategoryCreateRequest(BaseSchema):
@@ -19,6 +20,7 @@ class CategoryCreateRequest(BaseSchema):
     parent_id: Optional[int] = None
     type: CategoryType
     is_active: bool = True
+    image_url: Optional[str] = None
 
 
 class CategoryUpdateRequest(BaseSchema):
@@ -27,6 +29,7 @@ class CategoryUpdateRequest(BaseSchema):
     parent_id: Optional[int] = None
     type: CategoryType
     is_active: Optional[bool] = None
+    image_url: Optional[str] = None
 
 
 class CategoryResponse(CategoryBase):

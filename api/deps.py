@@ -1,5 +1,7 @@
 from typing import AsyncGenerator
-from fastapi import Depends
+from uuid import UUID
+
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_async_session
@@ -30,6 +32,18 @@ from services.projects import ProjectService
 from services.reviews import ReviewService
 from services.discounts import DiscountService
 from services.campaigns import CampaignService
+
+
+def get_guest_session_id(request: Request) -> UUID:
+    """UUID активной гостевой сессии (ставит GuestSessionMiddleware)."""
+    sid = getattr(request.state, "guest_session_id", None)
+    if sid is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Гостевая сессия недоступна для этого маршрута",
+        )
+    return sid
+
 
 async def get_attribute_repository(
     db: AsyncSession = Depends(get_async_session),

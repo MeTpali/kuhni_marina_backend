@@ -1,7 +1,8 @@
 import logging
-from typing import List, Optional
+from typing import List, Optional, Set
 from math import ceil
 from decimal import Decimal
+from uuid import UUID
 
 from fastapi import HTTPException, status
 
@@ -9,6 +10,7 @@ from repositories.products import ProductRepository
 from repositories.categories import CategoryRepository
 from repositories.discounts import DiscountRepository
 from repositories.reviews import ReviewRepository
+from repositories.guest_session_favorites import GuestSessionFavoriteRepository
 from core.models.products import ProductType
 from core.models.categories import CategoryType
 from core.models.discounts import DiscountType
@@ -30,6 +32,7 @@ from core.schemas.products import (
     CategoryFacetTreeNode,
     AttributeFacetItem,
     AttributeFacetValue,
+    ProductFavoriteMutationResponse,
 )
 from core.schemas.categories import CategoryResponse
 
@@ -157,6 +160,55 @@ class ProductService:
 
         return roots
 
+    async def _build_catalog_list_items(
+        self,
+        products: List,
+        favorite_product_ids: Set[int],
+    ) -> List[ProductListItemResponse]:
+        """Собрать элементы списка каталога (рейтинги, скидки, is_favourite)."""
+        if not products:
+            return []
+        product_ids = [p.id for p in products]
+        review_repo = ReviewRepository(self.repository.session)
+        review_stats = await review_repo.get_approved_review_stats_by_product_ids(product_ids)
+
+        items: List[ProductListItemResponse] = []
+        for product in products:
+            sorted_images = sorted(
+                product.images,
+                key=lambda img: (0 if img.is_main else 1),
+            )
+            images = [img.image_url for img in sorted_images]
+
+            discount = await self._get_product_discount(
+                product_id=product.id,
+                category_id=product.category_id,
+                product_type=ProductType(product.type) if isinstance(product.type, str) else product.type,
+                price=product.price,
+            )
+
+            rating, reviews_count = review_stats.get(product.id, (0.0, 0))
+            items.append(
+                ProductListItemResponse(
+                    id=product.id,
+                    name=product.name,
+                    slug=product.slug,
+                    category_id=product.category_id,
+                    category_name=product.category.name if product.category else None,
+                    price=product.price,
+                    is_new=product.is_new,
+                    is_hit=product.is_hit,
+                    type=ProductType(product.type) if isinstance(product.type, str) else product.type,
+                    images=images,
+                    is_active=product.is_active,
+                    discount=discount,
+                    rating=rating,
+                    reviews_count=reviews_count,
+                    is_favourite=product.id in favorite_product_ids,
+                )
+            )
+        return items
+
     async def get_product_catalog(
         self,
         page: int = 1,
@@ -169,6 +221,7 @@ class ProductService:
         campaign_id: Optional[int] = None,
         product_type: Optional[ProductType] = None,
         search_query: Optional[str] = None,
+        guest_session_id: Optional[UUID] = None,
     ) -> ProductCatalogResponse:
         """
         Получить каталог продуктов с фильтрами и пагинацией.
@@ -244,46 +297,15 @@ class ProductService:
 
         facets = CatalogFacets(categories=categories_facet, attributes=attributes_facet)
 
-        product_ids = [p.id for p in products]
-        review_repo = ReviewRepository(self.repository.session)
-        review_stats = await review_repo.get_approved_review_stats_by_product_ids(product_ids)
-
-        items = []
-        for product in products:
-            # Список URL изображений: первым — главное (is_main), остальные по порядку
-            sorted_images = sorted(
-                product.images,
-                key=lambda img: (0 if img.is_main else 1),
-            )
-            images = [img.image_url for img in sorted_images]
-
-            # Вычисляем скидку
-            discount = await self._get_product_discount(
-                product_id=product.id,
-                category_id=product.category_id,
-                product_type=ProductType(product.type) if isinstance(product.type, str) else product.type,
-                price=product.price,
+        favorite_ids: Set[int] = set()
+        if guest_session_id and products:
+            fav_repo = GuestSessionFavoriteRepository(self.repository.session)
+            favorite_ids = await fav_repo.get_favorite_product_ids_among(
+                guest_session_id,
+                [p.id for p in products],
             )
 
-            rating, reviews_count = review_stats.get(product.id, (0.0, 0))
-            items.append(
-                ProductListItemResponse(
-                    id=product.id,
-                    name=product.name,
-                    slug=product.slug,
-                    category_id=product.category_id,
-                    category_name=product.category.name if product.category else None,
-                    price=product.price,
-                    is_new=product.is_new,
-                    is_hit=product.is_hit,
-                    type=ProductType(product.type) if isinstance(product.type, str) else product.type,
-                    images=images,
-                    is_active=product.is_active,
-                    discount=discount,
-                    rating=rating,
-                    reviews_count=reviews_count,
-                )
-            )
+        items = await self._build_catalog_list_items(products, favorite_ids)
 
         total_pages = ceil(total / page_size) if page_size > 0 else 0
 
@@ -306,6 +328,7 @@ class ProductService:
         category_ids: List[int] = None,
         attribute_filters: List[dict] = None,
         product_type: Optional[ProductType] = None,
+        guest_session_id: Optional[UUID] = None,
     ) -> ProductCatalogResponse:
         """Получить каталог продуктов-хитов с пагинацией."""
         return await self.get_product_catalog(
@@ -315,6 +338,7 @@ class ProductService:
             attribute_filters=attribute_filters,
             is_hit=True,
             product_type=product_type,
+            guest_session_id=guest_session_id,
         )
 
     async def get_catalog_new(
@@ -324,6 +348,7 @@ class ProductService:
         category_ids: List[int] = None,
         attribute_filters: List[dict] = None,
         product_type: Optional[ProductType] = None,
+        guest_session_id: Optional[UUID] = None,
     ) -> ProductCatalogResponse:
         """Получить каталог новинок с пагинацией."""
         return await self.get_product_catalog(
@@ -333,6 +358,7 @@ class ProductService:
             attribute_filters=attribute_filters,
             is_new=True,
             product_type=product_type,
+            guest_session_id=guest_session_id,
         )
 
     async def get_catalog_discounts(
@@ -342,6 +368,7 @@ class ProductService:
         category_ids: List[int] = None,
         attribute_filters: List[dict] = None,
         product_type: Optional[ProductType] = None,
+        guest_session_id: Optional[UUID] = None,
     ) -> ProductCatalogResponse:
         """Получить каталог продуктов со скидкой с пагинацией."""
         return await self.get_product_catalog(
@@ -351,6 +378,75 @@ class ProductService:
             attribute_filters=attribute_filters,
             has_discount=True,
             product_type=product_type,
+            guest_session_id=guest_session_id,
+        )
+
+    async def get_favorite_products_catalog(
+        self,
+        guest_session_id: UUID,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> ProductCatalogResponse:
+        """Страница избранных товаров в формате каталога (без фасетов)."""
+        fav_repo = GuestSessionFavoriteRepository(self.repository.session)
+        ids, total = await fav_repo.get_paginated_favorite_product_ids(
+            guest_session_id, page, page_size
+        )
+        if not ids:
+            total_pages = ceil(total / page_size) if page_size > 0 else 0
+            return ProductCatalogResponse(
+                items=[],
+                total=total,
+                page=page,
+                page_size=page_size,
+                total_pages=total_pages,
+                facets=None,
+                message="Избранные продукты успешно получены",
+            )
+
+        products = await self.repository.get_products_by_ids_preserve_order(ids)
+        favorite_ids = set(ids)
+        items = await self._build_catalog_list_items(products, favorite_ids)
+        total_pages = ceil(total / page_size) if page_size > 0 else 0
+        return ProductCatalogResponse(
+            items=items,
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+            facets=None,
+            message="Избранные продукты успешно получены",
+        )
+
+    async def add_product_to_favorites(
+        self, guest_session_id: UUID, product_id: int
+    ) -> ProductFavoriteMutationResponse:
+        product = await self.repository.get_product_by_id(product_id)
+        if product is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Продукт с id {product_id} не найден",
+            )
+        fav_repo = GuestSessionFavoriteRepository(self.repository.session)
+        added = await fav_repo.add_if_absent(guest_session_id, product_id)
+        return ProductFavoriteMutationResponse(
+            product_id=product_id,
+            message="Добавлено в избранное" if added else "Уже в избранном",
+        )
+
+    async def remove_product_from_favorites(
+        self, guest_session_id: UUID, product_id: int
+    ) -> ProductFavoriteMutationResponse:
+        fav_repo = GuestSessionFavoriteRepository(self.repository.session)
+        n = await fav_repo.remove(guest_session_id, product_id)
+        if n == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Товар не найден в избранном",
+            )
+        return ProductFavoriteMutationResponse(
+            product_id=product_id,
+            message="Удалено из избранного",
         )
 
     async def get_search_suggestions(
@@ -449,6 +545,7 @@ class ProductService:
                 slug=product.category.slug,
                 parent_id=product.category.parent_id,
                 type=product.category.type,
+                image_url=product.category.image_url,
                 is_active=product.category.is_active,
                 message=None,
             )
@@ -536,6 +633,7 @@ class ProductService:
             slug=category.slug,
             parent_id=category.parent_id,
             type=category.type,
+            image_url=category.image_url,
             is_active=category.is_active,
             message=None,
         )
@@ -632,6 +730,7 @@ class ProductService:
                 slug=product.category.slug,
                 parent_id=product.category.parent_id,
                 type=product.category.type,
+                image_url=product.category.image_url,
                 is_active=product.category.is_active,
                 message=None,
             )

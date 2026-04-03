@@ -259,6 +259,93 @@
           </div>
         </div>
       </div>
+      {% if model_view.identity == 'category' %}
+      {% set category_tree_url = request.url.path | replace('/list', '/tree') %}
+      <div class="card mt-3">
+        <div class="card-header">
+          <h3 class="card-title">Дерево категорий</h3>
+        </div>
+        <div class="card-body">
+          <div id="category-tree-status" class="text-muted">Загрузка дерева...</div>
+          <div id="category-tree-container" class="d-none"></div>
+        </div>
+      </div>
+      <script>
+        (function () {
+          const statusNode = document.getElementById("category-tree-status");
+          const containerNode = document.getElementById("category-tree-container");
+          const treeUrl = "{{ category_tree_url }}";
+
+          function renderNode(node) {
+            const li = document.createElement("li");
+            li.className = "mb-1";
+
+            const item = document.createElement("div");
+            item.className = "d-inline-flex align-items-center gap-2";
+
+            const title = document.createElement("span");
+            title.textContent = `${node.name} (#${node.id})`;
+
+            const typeBadge = document.createElement("span");
+            typeBadge.className = "badge bg-secondary";
+            typeBadge.textContent = node.type;
+
+            item.appendChild(title);
+            item.appendChild(typeBadge);
+
+            if (!node.is_active) {
+              const inactiveBadge = document.createElement("span");
+              inactiveBadge.className = "badge bg-warning text-dark";
+              inactiveBadge.textContent = "Неактивна";
+              item.appendChild(inactiveBadge);
+            }
+
+            li.appendChild(item);
+
+            if (Array.isArray(node.children) && node.children.length > 0) {
+              const ul = document.createElement("ul");
+              ul.className = "mt-1";
+              node.children
+                .sort((a, b) => a.name.localeCompare(b.name, "ru"))
+                .forEach((child) => ul.appendChild(renderNode(child)));
+              li.appendChild(ul);
+            }
+
+            return li;
+          }
+
+          fetch(treeUrl)
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("Не удалось загрузить дерево категорий");
+              }
+              return response.json();
+            })
+            .then((data) => {
+              const items = Array.isArray(data.items) ? data.items : [];
+              statusNode.classList.add("d-none");
+              containerNode.classList.remove("d-none");
+
+              if (items.length === 0) {
+                containerNode.textContent = "Категории не найдены.";
+                return;
+              }
+
+              const rootList = document.createElement("ul");
+              rootList.className = "mb-0";
+              items
+                .sort((a, b) => a.name.localeCompare(b.name, "ru"))
+                .forEach((node) => rootList.appendChild(renderNode(node)));
+              containerNode.appendChild(rootList);
+            })
+            .catch((error) => {
+              statusNode.classList.remove("text-muted");
+              statusNode.classList.add("text-danger");
+              statusNode.textContent = error.message;
+            });
+        })();
+      </script>
+      {% endif %}
     </div>
   </div>
   {% if model_view.can_delete %}

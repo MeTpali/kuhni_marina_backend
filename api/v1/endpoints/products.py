@@ -1,7 +1,9 @@
-from typing import List, Optional
+from typing import Annotated, List, Optional
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Query, status
 
-from api.deps import get_product_service
+from api.deps import get_guest_session_id, get_product_service
 from services.products import ProductService
 from core.models.products import ProductType
 from core.schemas.products import (
@@ -12,6 +14,7 @@ from core.schemas.products import (
     ProductIdListResponse,
     ProductSearchSuggestionsResponse,
     ProductDeleteResponse,
+    ProductFavoriteMutationResponse,
 )
 
 router = APIRouter(
@@ -28,6 +31,8 @@ router = APIRouter(
     description="Возвращает каталог продуктов с фильтрами и пагинацией",
 )
 async def get_product_catalog(
+    guest_session_id: Annotated[UUID, Depends(get_guest_session_id)],
+    product_service: ProductService = Depends(get_product_service),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(20, ge=1, le=100, description="Размер страницы"),
     category_ids: Optional[List[int]] = Query(None, description="Фильтр по ID категорий"),
@@ -40,7 +45,6 @@ async def get_product_catalog(
     campaign_id: Optional[int] = Query(None, description="Фильтр по ID акции"),
     type: Optional[ProductType] = Query(None, description="Фильтр по типу продукта (KITCHEN, FURNITURE)"),
     search: Optional[str] = Query(None, description="Поиск по названию и описанию"),
-    product_service: ProductService = Depends(get_product_service),
 ):
     """
     Получить каталог продуктов:
@@ -69,6 +73,7 @@ async def get_product_catalog(
         campaign_id=campaign_id,
         product_type=type,
         search_query=search,
+        guest_session_id=guest_session_id,
     )
 
 
@@ -112,6 +117,8 @@ async def get_product_ids(
     description="Возвращает продукты-хиты с пагинацией",
 )
 async def get_product_hits(
+    guest_session_id: Annotated[UUID, Depends(get_guest_session_id)],
+    product_service: ProductService = Depends(get_product_service),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(20, ge=1, le=100, description="Размер страницы"),
     category_ids: Optional[List[int]] = Query(None, description="Фильтр по ID категорий"),
@@ -119,7 +126,6 @@ async def get_product_hits(
         None, description='Фильтр по атрибутам в формате JSON: [{"attribute_id": 1, "value": "значение"}]'
     ),
     type: Optional[ProductType] = Query(None, description="Фильтр по типу продукта (KITCHEN, FURNITURE)"),
-    product_service: ProductService = Depends(get_product_service),
 ):
     """Получить каталог продуктов-хитов с пагинацией."""
     import json
@@ -135,6 +141,7 @@ async def get_product_hits(
         category_ids=category_ids,
         attribute_filters=attr_filters,
         product_type=type,
+        guest_session_id=guest_session_id,
     )
 
 
@@ -145,6 +152,8 @@ async def get_product_hits(
     description="Возвращает новинки с пагинацией",
 )
 async def get_product_new(
+    guest_session_id: Annotated[UUID, Depends(get_guest_session_id)],
+    product_service: ProductService = Depends(get_product_service),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(20, ge=1, le=100, description="Размер страницы"),
     category_ids: Optional[List[int]] = Query(None, description="Фильтр по ID категорий"),
@@ -152,7 +161,6 @@ async def get_product_new(
         None, description='Фильтр по атрибутам в формате JSON: [{"attribute_id": 1, "value": "значение"}]'
     ),
     type: Optional[ProductType] = Query(None, description="Фильтр по типу продукта (KITCHEN, FURNITURE)"),
-    product_service: ProductService = Depends(get_product_service),
 ):
     """Получить каталог новинок с пагинацией."""
     import json
@@ -168,6 +176,7 @@ async def get_product_new(
         category_ids=category_ids,
         attribute_filters=attr_filters,
         product_type=type,
+        guest_session_id=guest_session_id,
     )
 
 
@@ -178,6 +187,8 @@ async def get_product_new(
     description="Возвращает продукты с активной скидкой с пагинацией",
 )
 async def get_product_discounts(
+    guest_session_id: Annotated[UUID, Depends(get_guest_session_id)],
+    product_service: ProductService = Depends(get_product_service),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(20, ge=1, le=100, description="Размер страницы"),
     category_ids: Optional[List[int]] = Query(None, description="Фильтр по ID категорий"),
@@ -185,7 +196,6 @@ async def get_product_discounts(
         None, description='Фильтр по атрибутам в формате JSON: [{"attribute_id": 1, "value": "значение"}]'
     ),
     type: Optional[ProductType] = Query(None, description="Фильтр по типу продукта (KITCHEN, FURNITURE)"),
-    product_service: ProductService = Depends(get_product_service),
 ):
     """Получить каталог продуктов со скидкой с пагинацией."""
     import json
@@ -201,7 +211,53 @@ async def get_product_discounts(
         category_ids=category_ids,
         attribute_filters=attr_filters,
         product_type=type,
+        guest_session_id=guest_session_id,
     )
+
+
+@router.get(
+    "/favorites",
+    response_model=ProductCatalogResponse,
+    summary="Избранные продукты",
+    description="Страница избранного текущей гостевой сессии (формат как у каталога, без фасетов).",
+)
+async def get_favorite_products(
+    guest_session_id: Annotated[UUID, Depends(get_guest_session_id)],
+    product_service: ProductService = Depends(get_product_service),
+    page: int = Query(1, ge=1, description="Номер страницы"),
+    page_size: int = Query(20, ge=1, le=100, description="Размер страницы"),
+):
+    return await product_service.get_favorite_products_catalog(
+        guest_session_id=guest_session_id,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.post(
+    "/favorites/{product_id}",
+    response_model=ProductFavoriteMutationResponse,
+    summary="Добавить продукт в избранное",
+)
+async def add_product_to_favorites(
+    guest_session_id: Annotated[UUID, Depends(get_guest_session_id)],
+    product_id: int,
+    product_service: ProductService = Depends(get_product_service),
+):
+    return await product_service.add_product_to_favorites(guest_session_id, product_id)
+
+
+@router.delete(
+    "/favorites/{product_id}",
+    response_model=ProductFavoriteMutationResponse,
+    summary="Убрать продукт из избранного",
+)
+async def remove_product_from_favorites(
+    guest_session_id: Annotated[UUID, Depends(get_guest_session_id)],
+    product_id: int,
+    product_service: ProductService = Depends(get_product_service),
+):
+    return await product_service.remove_product_from_favorites(guest_session_id, product_id)
 
 
 @router.get(

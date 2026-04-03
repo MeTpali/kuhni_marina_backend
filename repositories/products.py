@@ -324,6 +324,26 @@ class ProductRepository:
         logger.info("Retrieved %d search suggestions for query=%s", len(products), search_query[:50])
         return products
 
+    async def get_products_by_ids_preserve_order(
+        self, product_ids: List[int]
+    ) -> List[Product]:
+        """
+        Загрузить продукты по списку id с категорией и изображениями, порядок как в product_ids.
+        """
+        if not product_ids:
+            return []
+        result = await self.session.execute(
+            select(Product)
+            .options(
+                selectinload(Product.category),
+                selectinload(Product.images),
+            )
+            .where(Product.id.in_(product_ids))
+            .where(Product.is_active.is_(True))
+        )
+        by_id = {p.id: p for p in result.scalars().unique().all()}
+        return [by_id[i] for i in product_ids if i in by_id]
+
     async def get_product_ids(
         self,
         category_ids: Optional[List[int]] = None,

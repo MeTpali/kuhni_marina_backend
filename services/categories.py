@@ -58,6 +58,7 @@ class CategoryService:
             slug=category.slug,
             parent_id=category.parent_id,
             type=category.type,
+            image_url=category.image_url,
             is_active=category.is_active,
             message="Категория успешно найдена",
         )
@@ -92,6 +93,7 @@ class CategoryService:
             category_type=request.type,
             parent_id=request.parent_id,
             is_active=request.is_active,
+            image_url=request.image_url,
         )
         response = CategoryResponse(
             id=category.id,
@@ -99,6 +101,7 @@ class CategoryService:
             slug=category.slug,
             parent_id=category.parent_id,
             type=category.type,
+            image_url=category.image_url,
             is_active=category.is_active,
             message="Категория успешно создана",
         )
@@ -157,6 +160,13 @@ class CategoryService:
                     detail=f"Родительская категория с id {request.parent_id} не найдена",
                 )
 
+        update_payload = request.model_dump(exclude_unset=True)
+        image_url = (
+            update_payload["image_url"]
+            if "image_url" in update_payload
+            else current_category.image_url
+        )
+
         category = await self.repository.update_category(
             category_id=category_id,
             name=request.name,
@@ -164,6 +174,7 @@ class CategoryService:
             category_type=request.type,
             parent_id=request.parent_id,
             is_active=request.is_active if request.is_active is not None else current_category.is_active,
+            image_url=image_url,
         )
 
         response = CategoryResponse(
@@ -172,6 +183,7 @@ class CategoryService:
             slug=category.slug,
             parent_id=category.parent_id,
             type=category.type,
+            image_url=category.image_url,
             is_active=category.is_active,
             message="Категория успешно обновлена",
         )
@@ -206,6 +218,7 @@ class CategoryService:
                 slug=category.slug,
                 parent_id=category.parent_id,
                 type=category.type,
+                image_url=category.image_url,
                 is_active=category.is_active,
                 message=None,
                 children=[],

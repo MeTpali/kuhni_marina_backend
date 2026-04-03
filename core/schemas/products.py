@@ -103,6 +103,7 @@ class ProductListItemResponse(BaseSchema):
     discount: Optional[ProductDiscountInfo] = None
     rating: float = 0.0  # средний рейтинг по одобренным отзывам
     reviews_count: int = 0  # количество одобренных отзывов
+    is_favourite: bool = False  # в избранном у текущей гостевой сессии
 
     @field_serializer("price")
     def _serialize_price(self, value: Optional[Decimal]):
@@ -173,6 +174,11 @@ class ProductListResponse(BaseSchema):
 
 
 class ProductDeleteResponse(BaseSchema):
+    product_id: int
+    message: Optional[str] = None
+
+
+class ProductFavoriteMutationResponse(BaseSchema):
     product_id: int
     message: Optional[str] = None
 

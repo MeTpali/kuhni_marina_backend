@@ -37,6 +37,8 @@ class Category(Base):
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     # Признак активности
     is_active = Column(Boolean, default=True, nullable=False)
+    # URL изображения (опционально)
+    image_url = Column(String, nullable=True)
 
     # Связи
     parent = relationship("Category", remote_side=[id], back_populates="children")

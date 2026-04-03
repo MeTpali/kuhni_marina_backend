@@ -1,6 +1,7 @@
 """
 Загрузка файлов в Yandex Cloud Object Storage (S3-совместимый API).
-Структура бакета: products/{product_id}/{filename}, projects/{project_id}/{filename}.
+Структура бакета: products/{product_id}/{filename}, projects/{project_id}/{filename},
+banners/, campaigns/, categories/ для общих изображений.
 """
 import logging
 import uuid
@@ -164,3 +165,12 @@ def upload_campaign_image(
 ) -> str:
     """Загружает изображение акции в бакет: campaigns/{uuid}.{ext}. Возвращает публичный URL."""
     return _upload_image_to_folder("campaigns", file_bytes, content_type, original_filename)
+
+
+def upload_category_image(
+    file_bytes: bytes,
+    content_type: Optional[str] = None,
+    original_filename: Optional[str] = None,
+) -> str:
+    """Загружает изображение категории в бакет: categories/{uuid}.{ext}. Возвращает публичный URL."""
+    return _upload_image_to_folder("categories", file_bytes, content_type, original_filename)

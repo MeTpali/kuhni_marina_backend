@@ -5,6 +5,8 @@
 BEGIN;
 
 TRUNCATE TABLE
+    guest_session_favorites,
+    guest_sessions,
     banners,
     measure_requests,
     project_products,

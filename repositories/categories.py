@@ -92,6 +92,7 @@ class CategoryRepository:
         category_type: CategoryType,
         parent_id: Optional[int] = None,
         is_active: bool = True,
+        image_url: Optional[str] = None,
     ) -> Category:
         logger.info("Creating category with slug '%s', type=%s (value=%s)", slug, category_type, category_type.value)
         # SQLAlchemy должен автоматически использовать .value для Enum,
@@ -102,6 +103,7 @@ class CategoryRepository:
             parent_id=parent_id,
             type=category_type,
             is_active=is_active,
+            image_url=image_url,
         )
         self.session.add(category)
         await self.session.commit()
@@ -117,6 +119,7 @@ class CategoryRepository:
         slug: str,
         parent_id: Optional[int] = None,
         is_active: Optional[bool] = None,
+        image_url: Optional[str] = None,
     ) -> Optional[Category]:
         """
         Обновить категорию по идентификатору.
@@ -131,6 +134,7 @@ class CategoryRepository:
         category.slug = slug
         category.type = category_type
         category.parent_id = parent_id
+        category.image_url = image_url
         if is_active is not None:
             category.is_active = is_active
 

@@ -37,7 +37,8 @@ CREATE TABLE categories (
     parent_id INTEGER REFERENCES categories(id),
     type category_type NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    image_url TEXT
 );
 
 CREATE INDEX idx_categories_slug ON categories(slug);
@@ -164,7 +165,28 @@ CREATE TABLE banners (
 CREATE INDEX idx_banners_priority ON banners(priority);
 CREATE INDEX idx_banners_is_active ON banners(is_active);
 
--- 14. Создание таблицы campaigns
+-- 14. Гостевые сессии (анонимный клиент, cookie sessionid)
+CREATE TABLE guest_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX ix_guest_sessions_last_seen_at ON guest_sessions(last_seen_at);
+
+-- 15. Избранное гостевой сессии
+CREATE TABLE guest_session_favorites (
+    session_id UUID NOT NULL REFERENCES guest_sessions(id) ON DELETE CASCADE,
+    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (session_id, product_id)
+);
+
+CREATE INDEX ix_guest_session_favorites_session_id ON guest_session_favorites(session_id);
+CREATE INDEX ix_guest_session_favorites_product_id ON guest_session_favorites(product_id);
+
+-- 16. Создание таблицы campaigns
 CREATE TABLE campaigns (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,

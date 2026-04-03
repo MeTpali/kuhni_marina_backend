@@ -12,6 +12,8 @@ from core.config import settings
 from core.models.users import User
 from core.models.text import Text
 from core.models.temp_codes import TempCode
+from core.models import guest_sessions  # noqa: F401 — регистрация GuestSession в metadata
+from core.models import guest_session_favorites  # noqa: F401 — GuestSessionFavorite
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
