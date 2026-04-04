@@ -35,6 +35,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Иначе Flutter Web / браузер не отдаёт Set-Cookie в Dart, но этот заголовок читается
+    expose_headers=["X-Guest-Session-Id"],
 )
 
 # Настройка сессий для админ-панели
