@@ -20,6 +20,13 @@ from .banners import (
     BannerListResponse,
     BannerDeleteResponse,
 )
+from .background_images import (
+    BackgroundImageCreateRequest,
+    BackgroundImageUpdateRequest,
+    BackgroundImageResponse,
+    BackgroundImageListResponse,
+    BackgroundImageDeleteResponse,
+)
 from .measure_requests import (
     MeasureRequestCreateRequest,
     MeasureRequestUpdateRequest,
@@ -106,6 +113,8 @@ __all__ = [
     "CategoryDeleteResponse",
     "BannerCreateRequest", "BannerUpdateRequest",
     "BannerResponse", "BannerListResponse", "BannerDeleteResponse",
+    "BackgroundImageCreateRequest", "BackgroundImageUpdateRequest",
+    "BackgroundImageResponse", "BackgroundImageListResponse", "BackgroundImageDeleteResponse",
     "MeasureRequestCreateRequest", "MeasureRequestUpdateRequest",
     "MeasureRequestStatusUpdateRequest", "MeasureRequestResponse",
     "MeasureRequestListResponse",

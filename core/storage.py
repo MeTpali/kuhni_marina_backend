@@ -174,3 +174,12 @@ def upload_category_image(
 ) -> str:
     """Загружает изображение категории в бакет: categories/{uuid}.{ext}. Возвращает публичный URL."""
     return _upload_image_to_folder("categories", file_bytes, content_type, original_filename)
+
+
+def upload_background_image(
+    file_bytes: bytes,
+    content_type: Optional[str] = None,
+    original_filename: Optional[str] = None,
+) -> str:
+    """Загружает фоновое изображение в бакет: background_images/{uuid}.{ext}. Возвращает публичный URL."""
+    return _upload_image_to_folder("background_images", file_bytes, content_type, original_filename)

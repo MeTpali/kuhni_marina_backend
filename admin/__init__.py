@@ -13,6 +13,8 @@ from admin.auth import AdminAuth
 from admin.views import (
     AttributeAdmin,
     BannerAdmin,
+    BackgroundImageAdmin,
+    BulkBackgroundImagesAdmin,
     BulkProductImagesAdmin,
     BulkProjectImagesAdmin,
     CategoryAdmin,
@@ -58,6 +60,8 @@ def setup_admin(app: FastAPI) -> Admin:
     admin.add_view(BulkProjectImagesAdmin)
     admin.add_view(ProjectProductAdmin)
     admin.add_view(BannerAdmin)
+    admin.add_view(BackgroundImageAdmin)
+    admin.add_view(BulkBackgroundImagesAdmin)
     admin.add_view(CampaignAdmin)
     admin.add_view(DiscountAdmin)
     admin.add_view(MeasureRequestAdmin)

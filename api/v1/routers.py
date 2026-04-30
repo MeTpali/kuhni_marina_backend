@@ -13,6 +13,7 @@ from api.v1.endpoints import (
     reviews,
     discounts,
     campaigns,
+    background_images,
 )
 
 api_router = APIRouter()
@@ -30,3 +31,4 @@ api_router.include_router(projects.router)
 api_router.include_router(reviews.router)
 api_router.include_router(discounts.router)
 api_router.include_router(campaigns.router)
+api_router.include_router(background_images.router)

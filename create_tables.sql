@@ -208,3 +208,12 @@ CREATE INDEX idx_campaigns_dates ON campaigns(start_date, end_date);
 CREATE INDEX idx_campaigns_active ON campaigns(is_active);
 CREATE INDEX idx_campaigns_priority ON campaigns(priority DESC);
 
+-- 17. Создание таблицы background_images
+CREATE TABLE background_images (
+    id SERIAL PRIMARY KEY,
+    url TEXT NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE INDEX idx_background_images_is_active ON background_images(is_active);
+

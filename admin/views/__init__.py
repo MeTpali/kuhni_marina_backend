@@ -3,6 +3,7 @@
 """
 from admin.views.attributes import AttributeAdmin
 from admin.views.banners import BannerAdmin
+from admin.views.background_images import BackgroundImageAdmin, BulkBackgroundImagesAdmin
 from admin.views.categories import CategoryAdmin
 from admin.views.campaigns import CampaignAdmin
 from admin.views.discounts import DiscountAdmin
@@ -21,6 +22,8 @@ from admin.views.reviews import ReviewAdmin
 __all__ = [
     "AttributeAdmin",
     "BannerAdmin",
+    "BackgroundImageAdmin",
+    "BulkBackgroundImagesAdmin",
     "BulkProductImagesAdmin",
     "BulkProjectImagesAdmin",
     "CategoryAdmin",

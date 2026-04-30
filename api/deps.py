@@ -18,6 +18,7 @@ from repositories.projects import ProjectRepository
 from repositories.reviews import ReviewRepository
 from repositories.discounts import DiscountRepository
 from repositories.campaigns import CampaignRepository
+from repositories.background_images import BackgroundImageRepository
 
 from services.attributes import AttributeService
 from services.categories import CategoryService
@@ -32,6 +33,7 @@ from services.projects import ProjectService
 from services.reviews import ReviewService
 from services.discounts import DiscountService
 from services.campaigns import CampaignService
+from services.background_images import BackgroundImageService
 
 
 def get_guest_session_id(request: Request) -> UUID:
@@ -201,3 +203,15 @@ async def get_campaign_service(
     campaign_repository: CampaignRepository = Depends(get_campaign_repository),
 ) -> CampaignService:
     return CampaignService(campaign_repository)
+
+
+async def get_background_image_repository(
+    db: AsyncSession = Depends(get_async_session),
+) -> BackgroundImageRepository:
+    return BackgroundImageRepository(db)
+
+
+async def get_background_image_service(
+    background_image_repository: BackgroundImageRepository = Depends(get_background_image_repository),
+) -> BackgroundImageService:
+    return BackgroundImageService(background_image_repository)
