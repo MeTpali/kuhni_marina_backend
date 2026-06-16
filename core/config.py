@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str
     
     # Базовый URL приложения
-    HOST: str = "192.168.1.50"
+    HOST: str = "192.168.1.37"
     PORT: int = 8000
     BASE_URL: str = f"http://{HOST}:{PORT}/api/v1"
     STATIC_URL: str = f"http://{HOST}:{PORT}"

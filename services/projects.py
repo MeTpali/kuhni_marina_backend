@@ -40,6 +40,10 @@ class ProjectService:
         """
         logger.info("Fetching projects via service: page=%s, page_size=%s", page, page_size)
         projects, total = await self.repository.get_all_projects(page=page, page_size=page_size)
+        project_ids = [project.id for project in projects]
+        primary_images = await self.project_image_repository.get_primary_image_urls_by_project_ids(
+            project_ids
+        )
         items = [
             ProjectResponse(
                 id=project.id,
@@ -47,6 +51,7 @@ class ProjectService:
                 description=project.description,
                 location=project.location,
                 created_at=project.created_at,
+                image=primary_images.get(project.id),
                 message=None,
             )
             for project in projects

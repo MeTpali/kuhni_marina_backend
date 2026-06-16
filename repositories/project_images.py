@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 import logging
 
 from sqlalchemy import delete, select, update
@@ -121,6 +121,37 @@ class ProjectImageRepository:
             main_id = next(img.id for img in created if img.is_main)
             await self.ensure_single_main_for_project(project_id, main_id)
         return created
+
+    async def get_primary_image_urls_by_project_ids(
+        self, project_ids: List[int]
+    ) -> Dict[int, str]:
+        """
+        Получить URL главного изображения для каждого проекта.
+        Если главного нет — возвращается первое изображение по id.
+        """
+        if not project_ids:
+            return {}
+
+        logger.info("Fetching primary project images for %d projects", len(project_ids))
+        query = (
+            select(ProjectImage)
+            .where(ProjectImage.project_id.in_(project_ids))
+            .order_by(
+                ProjectImage.project_id,
+                ProjectImage.is_main.desc(),
+                ProjectImage.id,
+            )
+        )
+        result = await self.session.execute(query)
+        project_images = result.scalars().all()
+
+        urls: Dict[int, str] = {}
+        for project_image in project_images:
+            if project_image.project_id not in urls:
+                urls[project_image.project_id] = project_image.image_url
+
+        logger.info("Resolved primary images for %d projects", len(urls))
+        return urls
 
     async def get_project_images_by_project_id(self, project_id: int) -> List[ProjectImage]:
         """

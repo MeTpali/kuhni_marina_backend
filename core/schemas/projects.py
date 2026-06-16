@@ -24,6 +24,7 @@ class ProjectUpdateRequest(BaseSchema):
 class ProjectResponse(ProjectBase):
     id: int
     created_at: datetime
+    image: Optional[str] = None
     message: Optional[str] = None
 
 
